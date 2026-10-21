@@ -1,6 +1,6 @@
 /* Play only. A plain browser is not the Super App WebView: on a wide screen the game keeps phone width, centred.
    Reviewer layout (?review) comes from play/reviewer.css, copied from gheimat-shenas player/dev/reviewer.css. */
 @media (min-width: 600px) {
-  body.pe-play:not(.pe-dev) { background: #2A0710; }
-  body.pe-play:not(.pe-dev) #app { left: calc(50% - 215px); right: auto; width: 430px; }
+  body.pe-play:not(.pe-dev) { background: #ECEEF2; }
+  body.pe-play:not(.pe-dev) #app { max-width: 430px; box-shadow: 0 0 0 1px #E3E5EA, 0 12px 40px rgba(35,37,43,.08); }
 }

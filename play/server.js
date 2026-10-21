@@ -2,7 +2,8 @@
 // in-browser port of the gheimat-shenas backend (application/service/*, domain/*) at the revision named in index.html.
 // Same routes, JSON shapes, error codes and rules: question 10 s visible / 12.5 s arrival deadline, extra life 10 s /
 // 15 s, admitted operations finish after the deadline (resolve_by = arrival deadline + 60 s), receipt-first admission,
-// R-41 bands with look-ahead, highest checkpoint paid at run end, daily reward claim, 3 plays a day (Asia/Tehran).
+// R-41 bands with look-ahead (starts aligned to 5/10/15/20), each checkpoint paid once when crossed (0/1/3/5), record
+// reward (1 for matching a record above 20, once per run), continue 5, daily reward claim, 3 plays a day (Asia/Tehran).
 // DEMO ONLY: one account per browser (localStorage), DigiCoin SIMULATED in this page (start balance 120). Nothing is
 // charged or credited anywhere. A static page cannot verify the real backend or the real DigiCoin integration.
 
@@ -10,29 +11,30 @@ const PREFIX = '/v1/gamification/price-expert';
 export const API_ORIGIN = 'https://play.invalid';   // never resolves: a call that escapes the interceptor fails, it reaches no server
 const STORE = 'pe.play.state.v1';
 
-// LaunchConfig.value() of gheimat-shenas (R-20, R-33, R-41, R-47, brief 2026-10-20)
+// LaunchConfig.value() of gheimat-shenas (R-20, R-33, R-41, R-47, brief 2026-10-20, redesign 2026-10-21)
 const CFG = {
   configVersion: 1, catalogVersion: 1, playsPerDay: 3,
   inputMs: 10_000, acceptMs: 12_500, offerMs: 10_000, offerAcceptMs: 15_000, paymentResolutionMs: 60_000,
   inactivityMs: 180_000, offerActivationMs: 180_000, timeoutGraceMs: 1_000, checkpointAutoContinueMs: 5_000,
   checkpoints: [
-    { id: 'cp_3', requiredCorrect: 3, title: 'قیمت‌یاب تازه‌کار', badgeAssetId: 'badge_3', reward: 5 },
-    { id: 'cp_5', requiredCorrect: 5, title: 'قیمت‌یاب', badgeAssetId: 'badge_5', reward: 10 },
-    { id: 'cp_7', requiredCorrect: 7, title: 'کارشناس بازار', badgeAssetId: 'badge_7', reward: 20 },
-    { id: 'cp_10', requiredCorrect: 10, title: 'قیمت‌شناس واقعی', badgeAssetId: 'badge_10', reward: 40 },
+    { id: 'cp_5', requiredCorrect: 5, title: 'بازاری تازه‌کار', badgeAssetId: 'badge_5', reward: 0, percent: 50 },
+    { id: 'cp_10', requiredCorrect: 10, title: 'بازاری قدیمی', badgeAssetId: 'badge_10', reward: 1, percent: 70 },
+    { id: 'cp_15', requiredCorrect: 15, title: 'قیمت‌شناس حرفه‌ای', badgeAssetId: 'badge_15', reward: 3, percent: 90 },
+    { id: 'cp_20', requiredCorrect: 20, title: 'قیمت‌شناس اعظم', badgeAssetId: 'badge_20', reward: 5, percent: 99 },
   ],
-  continueRule: { enabled: true, cost: 10, cap: 1 },
+  continueRule: { enabled: true, cost: 5, cap: 1 },
+  recordReward: 1, recordRewardAbove: 20,
   streakReward: 1,
   bands: [
-    { minScore: 0, minBp: 5000, minInc: false, maxBp: null, maxInc: false },   // 0–2: d > 50%
-    { minScore: 3, minBp: 3000, minInc: false, maxBp: 5000, maxInc: true },    // 3–4: 30% < d ≤ 50%
-    { minScore: 5, minBp: 1500, minInc: false, maxBp: 3000, maxInc: true },    // 5–6: 15% < d ≤ 30%
-    { minScore: 7, minBp: 800, minInc: false, maxBp: 1500, maxInc: true },     // 7–9: 8% < d ≤ 15%
-    { minScore: 10, minBp: 300, minInc: true, maxBp: 800, maxInc: true },      // 10+: 3% ≤ d ≤ 8%
+    { minScore: 0, minBp: 5000, minInc: false, maxBp: null, maxInc: false },   // 0–4: d > 50%
+    { minScore: 5, minBp: 3000, minInc: false, maxBp: 5000, maxInc: true },    // 5–9: 30% < d ≤ 50%
+    { minScore: 10, minBp: 1500, minInc: false, maxBp: 3000, maxInc: true },   // 10–14: 15% < d ≤ 30%
+    { minScore: 15, minBp: 800, minInc: false, maxBp: 1500, maxInc: true },    // 15–19: 8% < d ≤ 15%
+    { minScore: 20, minBp: 300, minInc: true, maxBp: 800, maxInc: true },      // 20+: 3% ≤ d ≤ 8%
   ],
   features: { streak: true, share: true, products: true, haptics: true },
 };
-const DAILY_CAP = CFG.playsPerDay * Math.max(...CFG.checkpoints.map(c => c.reward)) + CFG.streakReward;   // R-47: 121
+const DAILY_CAP = CFG.playsPerDay * (CFG.checkpoints.reduce((t, c) => t + c.reward, 0) + CFG.recordReward) + CFG.streakReward;   // R-47: 3 × (9 + 1) + 1 = 31
 const REWARD_DELAYED_AFTER = 10_000, DAILY_PROCESSING_FOR = 120_000, DAYS_SHOWN = 7, LEASE = 20_000, GIVE_UP = 72 * 3600_000;
 const PRODUCT_LINK = dkp => `https://www.digikala.com/product/dkp-${dkp}/`;
 
@@ -204,11 +206,11 @@ function mutate(op, delta, key) {
 
 // ------------------------------------------------------------------------------------------------ views (ViewAssembler, Views.java)
 const cpById = id => CFG.checkpoints.find(c => c.id === id) || null;
-const cpView = c => (c ? { checkpointId: c.id, title: c.title, badgeAssetId: c.badgeAssetId, rewardAmount: c.reward, requiredCorrect: c.requiredCorrect } : null);
+const cpView = c => (c ? { checkpointId: c.id, title: c.title, badgeAssetId: c.badgeAssetId, rewardAmount: c.reward, requiredCorrect: c.requiredCorrect, comparisonPercent: c.percent } : null);
 const runConfig = () => ({
   configVersion: CFG.configVersion, catalogVersion: CFG.catalogVersion, inputMs: CFG.inputMs, acceptMs: CFG.acceptMs, offerMs: CFG.offerMs,
   offerAcceptMs: CFG.offerAcceptMs, checkpointAutoContinueMs: CFG.checkpointAutoContinueMs, checkpoints: CFG.checkpoints.map(cpView),
-  continueRule: { ...CFG.continueRule }, features: { ...CFG.features },
+  continueRule: { ...CFG.continueRule }, features: { ...CFG.features }, payOnCrossing: true, recordReward: CFG.recordReward, recordRewardAbove: CFG.recordRewardAbove,
 });
 const resolveBy = o => o.acceptDeadline + CFG.paymentResolutionMs;
 const admits = (o, t) => t <= o.acceptDeadline;
@@ -263,12 +265,12 @@ function streak(today) {   // StreakPolicy.compute
   let n = 0; for (let d = last; dates.has(d); d = addDays(d, -1)) n++;
   return n;
 }
-function createCredit(run, type, amount, at) {   // SettlementService.createCredit: against the start day's cap (R-47, F-03)
+function createCredit(run, type, amount, at, rewardKey = null) {   // SettlementService.createCredit: against the start day's cap (R-47, F-03)
   const capDay = run.startBusinessDate, dc = (S.credit[capDay] ||= { credited: 0, held: 0 });
   const grant = Math.min(amount, Math.max(0, DAILY_CAP - dc.credited)), held = amount - grant;
   dc.credited += grant; dc.held += held;
   const claim = type === 'STREAK_REWARD';   // the daily reward waits for the claim in the modal (brief 2026-10-20)
-  const op = { operationId: newId(), runId: run.runId, offerId: null, type, amount: grant, heldAmount: held,
+  const op = { operationId: newId(), runId: run.runId, offerId: null, type, rewardKey, amount: grant, heldAmount: held,
     status: grant <= 0 ? 'HELD' : claim ? 'CLAIMABLE' : 'PENDING', capDay, createdAt: at, claimedAt: null,
     nextAttemptAt: grant > 0 && !claim ? at : null, giveUpAt: at + GIVE_UP, attempts: 0, relatedOperationId: null };
   S.ops[op.operationId] = op;
@@ -292,8 +294,16 @@ function finish(run, reason, at) {
   if (run.score > S.player.record) { S.player.record = run.score; S.player.recordRunId = run.runId; run.newRecord = true; }
   const p = part(run.startBusinessDate); p.finishedRuns++; p.streakEligible = true;
   if (CFG.features.streak && CFG.streakReward > 0 && !streakRewardOf(run.startBusinessDate)) createCredit(run, 'STREAK_REWARD', CFG.streakReward, at);
-  const cp = cpById(run.highestCheckpointId);
-  if (cp && cp.reward > 0) createCredit(run, 'CHECKPOINT_REWARD', cp.reward, at);   // highest only, paid at run end (R-17)
+  // since the redesign every checkpoint is paid when it is crossed (crossingRewards): nothing is left to pay at the end
+}
+const runRewards = run => Object.values(S.ops).filter(o => o.runId === run.runId && (o.type === 'CHECKPOINT_REWARD' || o.type === 'RECORD_REWARD'));
+/** SettlementService.crossingRewards: once per (run, checkpoint) at the valid crossing; the record reward once per run. */
+function crossingRewards(run, reached, at) {
+  const has = key => runRewards(run).some(o => o.rewardKey === key);
+  if (reached && reached.reward > 0 && !has(reached.id)) processOp(createCredit(run, 'CHECKPOINT_REWARD', reached.reward, at, reached.id).operationId);
+  const t = run.bestScoreAtStart;
+  if (CFG.recordReward > 0 && t != null && t > CFG.recordRewardAbove && run.score === t && !has('record:' + t))
+    processOp(createCredit(run, 'RECORD_REWARD', CFG.recordReward, at, 'record:' + t).operationId);
 }
 
 // ------------------------------------------------------------------------------------------------ deadlines (DeadlineService)
@@ -352,6 +362,7 @@ function settleAnswer(run, q, now) {
     const reached = CFG.checkpoints.filter(c => c.requiredCorrect === run.score).pop();
     if (reached) run.highestCheckpointId = reached.id;
     Object.assign(run, { referenceDkp: q.comparisonDkp, state: 'READY', readySince: now, nextDeadlineAt: now + CFG.inactivityMs });   // promotion
+    crossingRewards(run, reached, now);
     if (!S.gameOn) finish(run, 'game_off', now);
   } else miss(run, q, q.receivedAt);
 }
@@ -476,11 +487,11 @@ function start(device) {
   if (active) {   // an accepted start on another device replaces the old run (R-28)
     finish(active, 'replaced', now);
     const cp = cpById(active.highestCheckpointId);
-    replaced = { runId: active.runId, score: active.score, checkpointReward: cp ? cp.reward : 0 };
+    replaced = { runId: active.runId, score: active.score, checkpointReward: runRewards(active).reduce((t, o) => t + o.amount + o.heldAmount, 0) };
   }
   const run = { runId, deviceId: device, state: 'READY', startBusinessDate: day, startedAt: now, referenceDkp: ref.dkp, nextSeq: 1, readySince: now,
     nextDeadlineAt: now + CFG.inactivityMs, score: 0, continuesUsed: 0, highestCheckpointId: null, missQuestionId: null, missAt: null, noOfferReason: null,
-    finishReason: null, finishedAt: null, lossQuestionId: null, recordBefore: null, newRecord: false, questionIds: [], offerIds: [] };
+    finishReason: null, finishedAt: null, lossQuestionId: null, recordBefore: null, newRecord: false, questionIds: [], offerIds: [], bestScoreAtStart: S.player.record };
   S.runs[runId] = run;
   p.playsUsed++;
   markSeen(day, ref.dkp, now);
@@ -528,8 +539,11 @@ function answer(questionId, choice, device, receivedAt) {
 function answerView(q, run, device) {
   const lr = lastResult(q);
   const reached = q.state === 'CORRECT' ? CFG.checkpoints.find(c => c.requiredCorrect === q.scoreBefore + 1) || null : null;
+  const op = key => { const o = runRewards(run).find(x => x.rewardKey === key); return o ? rewardStatus(o) : null; };
+  const t = run.bestScoreAtStart;
   return { questionId: q.questionId, result: lr.result, choice: lr.choice, equalPrices: lr.equalPrices, revealedPrice: lr.revealedPrice, direction: lr.direction,
-    score: run.score, checkpointReached: cpView(reached), continuePossible: run.state === 'AWAITING_OFFER' && q.questionId === run.missQuestionId,
+    score: run.score, checkpointReached: cpView(reached), checkpointReward: reached ? op(reached.id) : null,
+    recordReward: q.state === 'CORRECT' && t != null && q.scoreBefore + 1 === t ? op('record:' + t) : null, continuePossible: run.state === 'AWAITING_OFFER' && q.questionId === run.missQuestionId,
     noOfferReason: run.noOfferReason, runFinished: run.state === 'FINISHED', run: runView(run, device), serverTime: iso(clockNow) };
 }
 
@@ -544,7 +558,9 @@ function activateOffer(runId, device) {
   if (run.state !== 'AWAITING_OFFER') throw stateError('INVALID_STATE', run, device);
   if (!canReveal(P(run.referenceDkp).priceToman, run.score, runProducts(run))) { finishAfterMiss(run, 'no_products', clockNow); return view(null, null); }
   const balance = gateway.balance(), cost = CFG.continueRule.cost, now = clockNow;   // unknown balance = too low (R-63)
-  if (balance == null || balance < cost) { finishAfterMiss(run, 'no_funds', now); return view(balance, null); }
+  // R-50: coins earned in this run (already in the wallet since the redesign) cannot fund its continue
+  const earned = runRewards(run).filter(o => o.status === 'SUCCEEDED' || o.status === 'UNKNOWN').reduce((t, o) => t + o.amount, 0);
+  if (balance == null || balance - earned < cost) { finishAfterMiss(run, 'no_funds', now); return view(balance, null); }
   const o = { offerId: newId(), runId: run.runId, questionId: run.missQuestionId, state: 'OPEN', cost, openedAt: now, deadline: now + CFG.offerMs,
     acceptDeadline: now + CFG.offerAcceptMs, purchaseReceivedAt: null, operationId: null, closedAt: null };
   S.offers[o.offerId] = o; run.offerIds.push(o.offerId);
@@ -616,8 +632,9 @@ function rewardStatus(o) {
 function result(runId, device) {
   const run = lockForCommand(runId);
   if (run.state !== 'FINISHED') throw stateError('RUN_NOT_FINISHED', run, device);
-  const cpOp = Object.values(S.ops).find(o => o.runId === run.runId && o.type === 'CHECKPOINT_REWARD');
-  const cpReward = cpOp ? rewardStatus(cpOp) : { amount: 0, heldAmount: 0, status: run.finishReason === 'blocked' && run.highestCheckpointId ? 'cancelled' : 'none' };
+  const parts = runRewards(run).map(rewardStatus);
+  const cpReward = !parts.length ? { amount: 0, heldAmount: 0, status: 'none' } : { amount: parts.reduce((t, x) => t + x.amount, 0), heldAmount: parts.reduce((t, x) => t + x.heldAmount, 0),
+    status: parts.some(x => x.status === 'delayed') ? 'delayed' : parts.some(x => x.status === 'pending') ? 'pending' : 'succeeded' };
   const next = CFG.checkpoints.find(c => c.requiredCorrect > run.score);
   const balance = gateway.balance();
   return { runId: run.runId, score: run.score, reason: run.finishReason, noOfferReason: run.noOfferReason, record: S.player.record, isNewRecord: !!run.newRecord,
@@ -695,7 +712,8 @@ function bootstrap(device) {
     access: S.player.blocked ? { status: 'blocked', message: null } : !S.gameOn ? { status: 'game_off', message: null } : { status: 'ok', message: null },
     firstVisit: !S.player.onboarded, quota: quota(now, part(today).playsUsed), record: S.player.record,
     bestCheckpoint: recordRun ? cpView(cpById(recordRun.highestCheckpointId)) : null, dailyReward: dailyView(), balance,
-    activeRun: activeView, config: runConfig(), campaign: null, serverTime: iso(now),
+    activeRun: activeView, config: runConfig(), campaign: null,
+    lastRunId: (Object.values(S.runs).filter(r => r.state === 'FINISHED').sort((a, b) => b.startedAt - a.startedAt)[0] || {}).runId || null, serverTime: iso(now),
   };
 }
 

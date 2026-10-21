@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Updates this Play site from a gheimat-shenas checkout: the player (src/, styles/, fonts/) is copied unchanged, the
+# Updates this Play site from a gheimat-shenas checkout: the player (src/, styles/, fonts/, assets/) is copied unchanged, the
 # product catalog is rebuilt from data/qeymatshenas_products.json with the backend's import rules, and index.html records
 # the source revision. play/ (demo host, in-browser server, reviewer controls) belongs to Play and is not overwritten.
 # Usage (Git Bash): ./sync-from-gheimat-shenas.sh ../gheimat-shenas
 set -euo pipefail
 SRC="${1:?usage: ./sync-from-gheimat-shenas.sh /path/to/gheimat-shenas}"
 DST="$(cd "$(dirname "$0")" && pwd)"
-rm -rf "$DST/src" "$DST/styles" "$DST/fonts"
-cp -R "$SRC/player/src" "$SRC/player/styles" "$SRC/player/fonts" "$DST/"
+rm -rf "$DST/src" "$DST/styles" "$DST/fonts" "$DST/assets"
+cp -R "$SRC/player/src" "$SRC/player/styles" "$SRC/player/fonts" "$SRC/player/assets" "$DST/"
 cp "$SRC/player/dev/reviewer.css" "$DST/play/reviewer.css"
 python3 - "$SRC/data/qeymatshenas_products.json" "$DST/play/catalog.json" <<'PY'
 import json, sys

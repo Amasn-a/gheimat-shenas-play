@@ -3,12 +3,17 @@
 // decides timing, results, money and rewards; this file only renders what the server said and sends guarded intents.
 // Redesign 2026-10-21: splash → (onboarding) → home; the loss screen is the one surface for a miss and the continue
 // of the same run; checkpoint rewards are registered with the answer that crosses them, the celebration only continues.
+// Play redesign 2026-10-22 (handoff SPEC.fa.md): every screen after onboarding is drawn by redesign.js; onboarding still
+// uses views.js. The continue offer is activated only when the player taps «ادامه همین دست» (no timed decision on screen),
+// the daily reward is a full page opened automatically at most once per session, and reaching the run-start record shows
+// its own celebration. root.dataset.rd carries the handoff's 31-state id for reviewers and tests.
 import { api, ApiError, newKey } from './api.js';
 import * as clock from './clock.js';
 import * as host from './host.js';
 import * as motion from './motion.js';
 import { DUR } from './durations.js';
 import * as V from './views.js';
+import * as R from './redesign.js';
 import { DEMO_FIRST, DEMO_SECOND } from './demo.js';
 import { fa, untilInstant } from './fmt.js';
 
@@ -30,15 +35,17 @@ export const S = {
         onb: null, daily: null, slowSettle: false, offerOver: false, guideFrom: null, recordToast: null },
   keys: {},           // one Idempotency-Key per intent, reused for its retries
   gen: 0,
+  runTarget: 0,       // the player's record when this run started (frozen; the record celebration and progress after 20 use it)
 };
+let rdId = '', dailyAutoShown = false;   // handoff state id of the last render; the daily page opens by itself once per session
 
 let root = null, screenEl = null, cpEl = null;
 const now = () => performance.now();
 function later(ms, fn) { const g = S.gen; return setTimeout(() => { if (g === S.gen) fn(); }, ms); }
 /** Per-run transient UI, cleared in one place whenever a run ends, is replaced, or a new one starts or boots. */
 function resetRunUi() {
-  Object.assign(S.ui, { leave: false, cpDue: null, queued: null, resuming: false, afterContinue: false, noOffer: null, guardUntil: 0,
-    offerEnded: false, offerOver: false, slowSettle: false, cpShown: new Set(), lossReason: null, recordToast: null, codeState: null });
+  Object.assign(S.ui, { leave: false, leaveBusy: false, cpDue: null, queued: null, resuming: false, afterContinue: false, noOffer: null, guardUntil: 0,
+    offerEnded: false, offerOver: false, slowSettle: false, cpShown: new Set(), lossReason: null, recordDue: null, fbNext: null, chainContinue: false, codeState: null });
   unmountCp();
 }
 const cfg = () => (S.run && S.run.runConfig) || (S.boot && S.boot.config) || { checkpoints: [], continueRule: { enabled: false, cost: 0, cap: 0 }, inputMs: 10000, acceptMs: 12500, offerMs: 10000, offerAcceptMs: 15000 };
@@ -50,117 +57,117 @@ const haptic = kind => { if (feat('haptics')) host.haptic(kind); };
 const cpIndex = c => cfg().checkpoints.findIndex(x => x.checkpointId === c.checkpointId);
 
 // ------------------------------------------------------------------------------------------------ rendering
+const READYLIKE = ['G03.READY', 'G06.SUCCESS', 'G03.PREPARE_FAILED'];   // between questions: the offline page may replace them
+const SYS = { 'G11.SERVICE_ERROR': 'service', 'G11.AUTH_ERROR': 'auth', 'G11.BLOCKED': 'blocked', 'G11.GAME_OFF': 'off', 'G11.OTHER_DEVICE': 'other-device',
+  'G10.INACTIVITY_END': 'inactive', 'G03.NO_PRODUCTS_LEFT': 'no-products' };
 function screen() {
   const v = S.view;
-  if (v === 'G00.SPLASH' || v === 'G00.ERROR') return V.vSplash(v === 'G00.ERROR');
-  if (v.startsWith('G01.')) return homeScreen();
-  if (v === 'G02.GUIDE') return V.vGuide({ config: cfg() });
-  if (v === 'G02.ONBOARDING') return onboardScreen();
-  if (v === 'G03.LOADING') return loadingRun();
-  if (['G03.READY', 'G03.PREPARING', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
+  if (v === 'G00.SPLASH') { rdId = 'splash'; return R.splash(); }
+  if (v === 'G00.ERROR') { rdId = 'error'; return R.system('error', { toast: S.ui.toast }); }
+  if (v.startsWith('G01.')) {
+    if (S.ui.daily && S.boot && S.boot.dailyReward) { rdId = 'daily'; return R.daily(S.boot.dailyReward, S.ui.daily, { toast: S.ui.toast }); }
+    return homeScreen();
+  }
+  if (v === 'G02.GUIDE') { rdId = 'help'; return R.help(cfg()); }
+  if (v === 'G02.ONBOARDING') { rdId = 'onboarding'; return onboardScreen(); }
+  if (v === 'G10.RESUMING' || v === 'G03.LOADING' || (S.ui.resuming && READYLIKE.includes(v))) { rdId = 'reconnecting'; return R.system('reconnecting'); }
+  if (S.ui.offline && READYLIKE.includes(v)) { rdId = S.ui.leave ? 'exit' : 'offline'; return R.system('offline', { sheet: S.ui.leave ? exitSheet() : '', toast: S.ui.toast }); }
+  if (v === 'G03.READY' || v === 'G06.SUCCESS') return gameScreen('ready');
+  if (v === 'G03.PREPARING') return gameScreen('loading');
+  if (v === 'G03.PREPARE_FAILED') return gameScreen('error');
   if (v === 'G03.QUESTION_ACTIVE' || v === 'G03.ANSWER_PENDING') return question();
   if (['G03.CORRECT_FEEDBACK', 'G03.WRONG_FEEDBACK', 'G03.TIMEOUT'].includes(v)) return feedback();
-  if (isLoss(v)) return lossScreen();
-  return V.vSystem(v, { toast: S.ui.toast, ended: S.ended, playerMessage: S.boot && S.boot.access ? S.boot.access.message : null });
+  if (isLoss(v)) return resultScreen();
+  rdId = v === 'G11.SERVICE_ERROR' ? 'error' : 'system:' + (SYS[v] || 'service');
+  return R.system(SYS[v] || 'service', { score: S.ended ? S.ended.score : 0, message: S.boot && S.boot.access ? S.boot.access.message : null, toast: S.ui.toast });
 }
 
+// shortcut: the service's business day is Asia/Tehran (the play server's rule); take it from the API if it ever differs
+const bizDate = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran' }).format(new Date(ms));
 function homeScreen() {
-  const b = S.boot;
-  return V.vHome(S.view, {
-    boot: b, balance: S.balance, toast: S.ui.toast, offline: S.ui.offline,
-    untilReset: untilInstant(clock.ms(b.quota.resetsAt) - clock.serverNow()),
-    productsOn: feat('products'), products: S.home.products, historyState: S.home.state,
-    modal: S.ui.daily && b.dailyReward ? V.dailyModal(b.dailyReward, S.ui.daily) : '',
-  });
+  const b = S.boot, v = S.view, zero = v === 'G01.QUOTA_EXHAUSTED' || v === 'G01.QUOTA_CHECKING', fresh = !b.record && !b.lastRunId;
+  let cta = 'start';
+  const notes = [];
+  if (v === 'G01.ACTIVE_RUN') { cta = 'resume'; notes.push({ kind: 'info', icon: 'play', text: `یه دست نیمه‌کاره داری با ${fa(b.activeRun.score)} جواب درست؛ از همون‌جا ادامه بده.` }); }
+  else if (v === 'G01.OPERATION_PENDING') { cta = 'pending'; notes.push({ kind: 'info', icon: 'spin', text: 'درخواست ادامه قبلیت هنوز در حال بررسیه؛ دوباره کسر نمی‌شه. چند لحظه صبر کن.' }); }
+  else if (v === 'G01.STARTING' || v === 'G01.REFRESHING') cta = 'busy';
+  else if (v === 'G01.QUOTA_CHECKING') cta = 'checking';
+  else if (S.ui.offline && !zero) { cta = 'offline'; notes.push({ kind: 'error', icon: 'wifi', text: 'اتصال برقرار نیست؛ برای شروع بازی به اینترنت وصل شو.' }); }
+  const o = b.activeRun && !b.activeRun.onThisDevice ? b.activeRun : null;
+  if (o) notes.push({ icon: 'devices', text: `یه دست روی دستگاه دیگه‌ات بازه. با شروع دست جدید، اون دست با ${fa(o.score)} جواب درست تموم می‌شه.` });
+  const d = b.dailyReward, today = bizDate(clock.serverNow());
+  const daily = !d ? null : d.state === 'claimable' ? 'ready'
+    : ['processing', 'claimed', 'delayed'].includes(d.state) && d.claimedAt && bizDate(clock.ms(d.claimedAt)) === today ? 'done' : null;
+  rdId = zero ? 'home-zero' : fresh ? 'home-new' : 'home';
+  const best = b.bestCheckpoint ? cpIndex(b.bestCheckpoint) + 1 : 0;
+  return R.home({ mode: zero ? 'zero' : fresh ? 'new' : 'home', cta, boot: b, balance: S.balance, notes, daily, toast: S.ui.toast,
+    untilReset: untilInstant(clock.ms(b.quota.resetsAt) - clock.serverNow()), tomorrow: bizDate(clock.ms(b.quota.resetsAt)) !== today,
+    bestLevel: best > 0 ? best : 0, productsOn: feat('products'), products: S.home.products, historyState: S.home.state });
 }
 
-const top = () => V.gameTop(S.run.score, !!S.op || S.view === 'G03.ANSWER_PENDING');
-const trk = () => V.track(S.run.score, cfg().checkpoints);
-const leave = () => V.leaveSheet({ leave: S.ui.leave, score: S.run.score, checkpoint: S.run.highestCheckpoint, questionOpen: ['G03.QUESTION_ACTIVE', 'G03.ANSWER_PENDING'].includes(S.view) });
-
-function loadingRun() {
-  return V.game(V.gameTop(0, true), V.track(0, cfg().checkpoints), V.timer({ mode: 'idle' }),
-    '<article class="q-ref q-skel" aria-busy="true" aria-label="کالای اول در راهه"></article>' + V.revealCard('busy'), '', '', S.ui.toast);
+const exitSheet = () => R.exitSheet({ score: S.run ? S.run.score : 0, busy: S.ui.leaveBusy, questionOpen: ['G03.QUESTION_ACTIVE', 'G03.ANSWER_PENDING'].includes(S.view) });
+function gameM(st, extra) {
+  rdId = S.ui.leave ? 'exit' : { ready: 'ready', loading: 'image-loading', error: 'image-error', active: 'active', urgent: 'urgent', checking: 'checking',
+    timeup: 'checking', correct: 'correct', wrong: 'wrong', timeout: 'timeout' }[st];
+  return R.game({ st, score: S.run.score, cps: cfg().checkpoints, target: S.runTarget, ref: S.ref, inputMs: cfg().inputMs, offline: S.ui.offline,
+    backLocked: !!S.op || S.view === 'G03.ANSWER_PENDING', sheet: S.ui.leave ? exitSheet() : '', toast: S.ui.toast, ...extra });
 }
+const gameScreen = st => gameM(st, {});
 
-function connPill() {
-  if (S.ui.resuming) return V.pill('در حال اتصال دوباره…', 'refresh');
-  return '';
-}
-
-function ready() {
-  const v = S.view, off = S.ui.offline;
-  const st = v === 'G03.PREPARING' ? 'busy' : v === 'G03.PREPARE_FAILED' ? 'failed' : off ? 'off' : 'on';
-  const lead = connPill();                                    // after a continue the toast says so; no extra row that could push the button off
-  return V.game(top(), trk(), V.timer({ mode: 'idle' }), lead + V.refCard(S.ref, false) + V.revealCard(st),
-    '<p class="q-hintline">قبل از نمایش، کالای اول رو ببین</p>', leave(), S.ui.toast);
-}
-
-/** Visible countdown of the open question: whole seconds from the server-anchored deadline (never a decremented counter). */
+/** Visible countdown of the open question, from the server-anchored deadline (never a decremented counter). */
 function timerNow() {
   const total = cfg().inputMs, q = S.q;
   const rem = Math.max(0, Math.min(total, clock.ms(q.inputDeadline) - clock.serverNow()));
-  return { rem, t: fa(Math.ceil(rem / 1000)), p: (rem / total).toFixed(3), low: rem <= 3000 };
+  const t = rem > total - 100 ? fa(Math.round(total / 1000)) : fa((Math.ceil(rem / 100) / 10).toFixed(1)).replace('.', '٫');
+  return { rem, t, p: rem / total, low: rem <= 3000, label: `${fa(Math.ceil(rem / 1000))} ثانیه مونده` };
 }
 
 function question() {
-  const q = S.q, pend = !!q.pick, off = S.ui.offline, tn = timerNow(), over = !pend && (q.locked || tn.rem <= 0);
-  let lead = off ? V.pill('اتصال قطع شد؛ تا برگرده نمی‌شه جواب داد و زمان ادامه داره.', 'wifi') : connPill();
-  if (S.ui.slowSettle) lead = V.pill(pend ? 'پاسخت ثبت شده؛ نتیجه‌اش هنوز نرسیده.' : 'نتیجه هنوز نرسیده.', 'refresh', '<button class="q-pill__btn" data-act="recheck-answer">بررسی دوباره</button>');
-  const tm = pend ? V.timer({ mode: 'busy' }) : over ? V.timer({ mode: 'zero' }) : V.timer({ mode: tn.low ? 'low' : 'run', t: tn.t, p: tn.p });
-  const line = pend ? V.prompt('در حال بررسی پاسخ...', true) : over ? V.prompt('زمان تموم شد؛ در حال بررسی…', true) : V.prompt(V.Q_PROMPT, off);
-  return V.game(top(), trk(), tm, lead + V.refCard(S.ref, true) + V.cmpCard(q.product, 'hidden', 0, q.imgSlow && !q.imgReady),
-    V.decide(pend ? 'pending' : off || over ? 'off' : 'on', q.pick, line, S.ref.price), leave(), S.ui.toast);
+  const q = S.q, pend = !!q.pick, tn = timerNow(), over = !pend && (q.locked || tn.rem <= 0);
+  const st = pend ? 'checking' : over ? 'timeup' : tn.low ? 'urgent' : 'active';
+  let note = null;
+  if (S.ui.offline) note = { kind: 'off', text: 'اتصال قطع شد؛ تا برگرده نمی‌شه جواب داد و زمان ادامه داره.' };
+  else if (S.ui.resuming) note = { text: 'در حال اتصال دوباره…' };
+  if (S.ui.slowSettle) note = { text: pend ? 'انتخابت ارسال شد؛ نتیجه‌اش هنوز نرسیده.' : 'نتیجه هنوز نرسیده.', btn: '<button class="link-btn" data-act="recheck-answer">بررسی دوباره</button>' };
+  return gameM(st, { product: q.product, pick: q.pick, tm: tn, imgWait: !q.imgReady, note });
 }
 
-/** The server's verdict in the place the player acted: same cards, same buttons, same sizes (§8). */
+/** The server's verdict in the place the player acted: same cards, same buttons, same sizes. */
 function feedback() {
   const fb = S.fb;
-  if (!fb) return ready();
-  const dir = V.dirOf(fb.direction), truthW = V.DIRW[dir];
-  let tm, card, dec;
-  if (fb.kind === 'correct') {
-    tm = V.timer({ mode: 'done' });
-    card = V.cmpCard(fb.product, 'ok', fb.revealedPrice);
-    dec = V.decide('ok', fb.choice, V.verdict('ok', 'درست گفتی!', fb.equal ? 'قیمت‌ها برابر بود؛ هر دو جواب درسته' : `${truthW} بود`));
-  } else if (fb.kind === 'wrong') {
-    tm = V.timer({ mode: 'done' });
-    card = V.cmpCard(fb.product, 'no', fb.revealedPrice);
-    dec = V.decide('no', fb.choice, V.verdict('no', 'جوابت درست نبود', `${truthW} بود`));
-  } else {   // timeout: no answer is shown as the player's
-    tm = V.timer({ mode: 'zero' });
-    card = V.cmpCard(fb.product, 'time', fb.revealedPrice);
-    dec = V.decide('truth', fb.direction === 'higher' ? 'higher' : 'lower', V.verdict('time', 'زمان تموم شد', `${truthW} بود`));
-  }
-  return V.game(top(), trk(), tm, connPill() + V.refCard(S.ref, true) + card, dec, leave(), S.ui.toast);
+  if (!fb || !fb.product) return gameScreen('ready');
+  const st = fb.kind === 'correct' ? 'correct' : fb.kind === 'wrong' ? 'wrong' : 'timeout';
+  return gameM(st, { product: fb.product, pick: st === 'timeout' ? null : fb.choice, revealedPrice: fb.revealedPrice, direction: fb.direction, equal: fb.equal });
 }
 
-/** G05/G06: the loss screen and every state of the continue of the same run (§11, §12). */
-function lossScreen() {
+/**
+ * G05/G06: the result and every state of the continue of the same run. Reason, earned title, continue eligibility and the
+ * transaction status are independent inputs; the alert sits above the bottom actions, outside the scrolling body.
+ */
+function resultScreen() {
   const v = S.view, run = S.run, c = cfg(), cost = S.offer ? S.offer.cost : c.continueRule.cost;
-  const COST = remS => `<p class="q-cost">${V.COIN}<span>${fa(cost)} دیجی‌کوین</span>${remS != null ? `<span class="q-cost__t" aria-hidden="true">· <b data-offer-left>${fa(remS)}</b> ثانیه</span>` : ''}</p>`;
-  const remS = S.offer ? Math.max(0, Math.ceil((clock.ms(S.offer.deadline) - clock.serverNow()) / 1000)) : null;
-  const GO = V.PRIMARY('ادامه', ' data-act="continue"', V.ICO('fwd', 22));
-  let action = '', homeLocked = false;
-  if (v === 'G05.LOADING') { action = V.BUSY('ادامه') + COST(null); homeLocked = true; }
-  else if (v === 'G05.OFFER' && S.ui.offerOver) action = V.status('', 'زمان ادامه تموم شد؛ در حال ثبت پایان دست…', null, true);
-  else if (v === 'G05.OFFER') action = GO + COST(remS);
-  else if (v === 'G05.NO_FUNDS') {
-    action = `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>ادامه</span><i class="q-btn__i">${V.ICO('fwd', 22)}</i></button>` +
-      V.status('warn', `برای ادامه ${fa(cost)} دیجی‌کوین لازمه${S.balance != null ? `؛ موجودیت ${fa(S.balance)} دیجی‌کوینه` : ''}.`, 'info');
-  } else if (v === 'G06.PENDING') { action = V.BUSY('در حال بررسی پرداخت…') + COST(null); homeLocked = true; }
-  else if (v === 'G06.UNKNOWN') {
-    action = V.status('warn', 'نتیجه پرداخت هنوز مشخص نیست. هیچ مبلغی دوباره کسر نمی‌شه؛ اگه ادامه ممکن نشه، هزینه برمی‌گرده.', null, true) +
-      V.SECONDARY('بررسی دوباره', ' data-act="recheck"', V.ICO('refresh')); homeLocked = true;
-  } else if (v === 'G06.FAILED_RETRY') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز فرصت داری دوباره امتحان کنی.', 'alert', false, true) + GO + COST(remS);
-  else if (v === 'G06.FAILED_END') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد؛ ادامه انجام نشد.', 'alert', false, true);
-  else if (v === 'G06.REFUNDED') action = V.status('ok', `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.`, 'check');
-  else if (v === 'G06.FAILED_END.UNCONFIRMED') action = V.status('no', 'پرداخت به‌موقع تأیید نشد و ادامه انجام نشد؛ اگه مبلغی کسر شده باشه، خودکار برمی‌گرده.', 'alert');
-  // G05.LOSS: the run is over without a continue (limit used, window over, skipped): only «صفحه اصلی»
-  const best = Math.max(S.result ? S.result.record : 0, (S.boot && S.boot.record) || 0, run ? run.score : 0);
+  const short = S.balance != null && S.balance < cost;
+  let cont = 'none', alert = null, homeLocked = false;
+  const BAL = S.balance == null ? 'موجودیت الان مشخص نیست.' : `موجودی تو: ${fa(S.balance)} دیجی‌کوین`;
+  if (v === 'G05.ELIGIBLE' || (v === 'G05.OFFER' && !S.ui.offerOver)) cont = short ? 'insufficient' : 'pay';
+  else if (v === 'G05.OFFER') alert = { kind: 'info', icon: 'spin', html: 'فرصت ادامه این دست تموم شد؛ در حال ثبت پایان دست…' };
+  else if (v === 'G05.LOADING' || v === 'G06.PENDING') { cont = 'pending'; homeLocked = true; alert = { kind: 'info', icon: 'spin', html: 'در حال بررسی درخواست ادامه…<br>برای جلوگیری از پرداخت دوباره، منتظر بمون.' }; }
+  else if (v === 'G06.UNKNOWN') { cont = 'unknown'; homeLocked = true; alert = { kind: 'info', icon: 'spin', html: 'وضعیت درخواست هنوز مشخص نیست؛ داریم بررسی می‌کنیم.<br>درخواست تازه‌ای ثبت نمی‌شه.' }; }
+  else if (v === 'G06.FAILED_RETRY') { cont = 'failed'; alert = { kind: 'error', icon: 'alert', html: 'ادامه انجام نشد؛ دیجی‌کوینی کم نشد.<br>دوباره تلاش کن یا به صفحه اصلی برگرد.' }; }
+  else if (v === 'G06.FAILED_END') alert = { kind: 'error', icon: 'alert', html: 'ادامه انجام نشد؛ دیجی‌کوینی کم نشد.<br>این دست همین‌جا تموم شد.' };
+  else if (v === 'G06.REFUNDED') alert = { kind: 'info', icon: 'check', html: `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.` };
+  else if (v === 'G06.FAILED_END.UNCONFIRMED') alert = { kind: '', icon: 'alert', html: 'ادامه به‌موقع تأیید نشد و این دست تموم شد.<br>اگه مبلغی کسر شده باشه، خودکار برمی‌گرده.' };
+  else if (v === 'G05.NO_FUNDS') cont = 'insufficient';
+  else if (S.ui.noOffer === 'limit_used') alert = { kind: 'info', icon: 'check', html: 'فرصت ادامه این دست رو استفاده کردی.' };
+  else if (S.ui.noOffer === 'no_products') alert = { kind: 'info', icon: 'check', html: 'کالای مناسب دیگه‌ای برای ادامه این دست نمونده.' };
+  else if (c.continueRule.enabled) alert = { kind: 'info', icon: 'clock', html: 'فرصت ادامه این دست تموم شد.' };
+  if (cont === 'insufficient') alert = { kind: '', icon: 'alert', html: `برای ادامه ${fa(cost)} دیجی‌کوین لازمه.<br>${BAL}` };
   const cp = run ? run.highestCheckpoint : null;
-  const R = S.result, code = R && R.campaignCode && R.campaignCode.status !== 'sold_out' ? V.codeCard(R.campaignCode, S.ui.codeState === 'copied') : '';
-  return V.vLoss({ reason: S.ui.lossReason, score: run ? run.score : 0, best, cp, cpIndex: cp ? cpIndex(cp) : 0, action, homeLocked, code, toast: S.ui.toast });
+  const best = Math.max(S.result ? S.result.record : 0, (S.boot && S.boot.record) || 0, run ? run.score : 0);
+  rdId = { pay: S.ui.lossReason === 'timeout' ? 'result-timeout' : cp ? 'result' : 'result-no-badge', insufficient: 'insufficient', pending: 'payment-pending',
+    unknown: 'payment-pending', failed: 'payment-failed', none: 'result-final' }[cont];
+  return R.result({ reason: S.ui.lossReason, score: run ? run.score : 0, best, cp, cpIndex: cp ? cpIndex(cp) : 0, fb: S.fb, balance: S.balance, cost,
+    cont, alert, homeLocked, toast: S.ui.toast });
 }
 
 // ------------------------------------------------------------------------------------------------ onboarding (§14)
@@ -244,6 +251,7 @@ export function render() {
   motion.end();
   screenEl.innerHTML = screen();
   root.dataset.view = stateId();
+  root.dataset.rd = S.ui.cp ? root.dataset.rd : rdId;
   wireImages();
   if (before) motion.morph(root, before, ms, () => { const q = S.ui.queued; S.ui.queued = null; if (q === 'reveal') setTimeout(reveal, 0); });
   if (root.querySelector('[data-countdown],[data-offer-left]')) tickLoop();
@@ -254,7 +262,7 @@ export function render() {
 /** Fine-grained state id (as in the handoff state index) for analytics, tests and reviewers. */
 export function stateId() {
   const v = S.view;
-  if (S.ui.cp && (v === 'G03.READY' || v === 'G06.SUCCESS')) return 'G04.REACHED';
+  if (S.ui.cp && (v === 'G03.READY' || v === 'G06.SUCCESS')) return S.ui.cp.key.endsWith(':record') ? 'G04.RECORD' : 'G04.REACHED';
   if (S.ui.resuming && inRun(v)) return 'G10.RESUMING';
   if (v === 'G02.ONBOARDING' && S.ui.onb) return `G02.ONBOARDING.P${S.ui.onb.page}${S.ui.onb.busy ? '.SAVING' : S.ui.onb.error ? '.ERROR' : ''}`;
   if (v.startsWith('G01.') && S.ui.daily) return 'G01.DAILY_REWARD.' + S.ui.daily.phase.toUpperCase();
@@ -281,12 +289,15 @@ export function stateId() {
   return v;
 }
 
+/** The open question's photo: its loading look is dropped in place (no re-render while a question is open). A failed photo
+ *  shows a neutral placeholder; the deadline is the server's and is not extended. */
 function wireImages() {
-  const im = root.querySelector('img[data-onload="q"]');
+  const im = root.querySelector('.product-stage .stage-img img');
   if (!im || !S.q) return;
-  const qid = S.q.questionId;
-  const done = () => { if (S.q && S.q.questionId === qid && !S.q.imgReady) { S.q.imgReady = true; if (S.q.imgSlow) render(); } };
-  if (im.complete && im.naturalWidth) done(); else { im.addEventListener('load', done, { once: true }); im.addEventListener('error', () => {}, { once: true }); }
+  const qid = S.q.questionId, stage = im.closest('.product-stage');
+  const done = () => { if (S.q && S.q.questionId === qid) { S.q.imgReady = true; stage.classList.remove('img-wait'); } };
+  const fail = () => { if (S.q && S.q.questionId === qid) { S.q.imgReady = true; stage.classList.remove('img-wait'); im.replaceWith(Object.assign(document.createElement('span'), { className: 'img-missing', innerHTML: R.icon('image', 34) })); } };
+  if (im.complete && im.naturalWidth) done(); else { im.addEventListener('load', done, { once: true }); im.addEventListener('error', fail, { once: true }); }
 }
 
 function go(view) { S.view = view; render(); }
@@ -329,7 +340,9 @@ export async function boot() {
   if (b.access.status === 'blocked') return go('G11.BLOCKED');
   if (b.access.status === 'game_off') return go('G11.GAME_OFF');
   loadHistory(b.lastRunId);
-  if (b.activeRun && b.activeRun.onThisDevice && b.activeRun.state === 'PAYMENT_PENDING') { go('G01.OPERATION_PENDING'); return pollPendingAtStart(b.activeRun); }
+  // a run open on this device (reload, app restart) is restored from its server snapshot: question, deadline, pending
+  // answer or payment, result; never a fresh ready and never a new run (handoff state «reconnecting»)
+  if (b.activeRun && b.activeRun.onThisDevice) return resume(b.activeRun.runId);
   if (b.firstVisit && !(b.activeRun && b.activeRun.onThisDevice)) return startOnboarding();
   routeHome();
 }
@@ -339,14 +352,20 @@ function routeHome() {
   const b = S.boot;
   if (b.activeRun && b.activeRun.onThisDevice) return go('G01.ACTIVE_RUN');
   const d = b.dailyReward;
-  if (d && (d.state === 'claimable' || d.state === 'processing')) {
-    S.ui.daily = { phase: d.state === 'processing' ? 'processing' : 'claimable' };
-    if (d.state === 'processing') pollDaily();
-  }
+  if (d && d.state === 'claimable' && !dailyAutoShown) openDaily();   // once per session; the home link stays for later
   go(b.quota.playsLeft > 0 ? 'G01.READY' : 'G01.QUOTA_EXHAUSTED');
   if (S.ui.daily) focusModal();
 }
-function focusModal() { requestAnimationFrame(() => { const b = root.querySelector('.q-daily .q-btn:not([disabled])'); if (b) b.focus({ preventScroll: true }); }); }
+function focusModal() { requestAnimationFrame(() => { const b = root.querySelector('.daily-screen .btn:not([disabled])'); if (b) b.focus({ preventScroll: true }); }); }
+/** The daily reward page. Closing it claims nothing and keeps the reward; it does not reopen by itself in this session. */
+function openDaily() {
+  const d = S.boot && S.boot.dailyReward; if (!d) return;
+  dailyAutoShown = true;
+  S.ui.daily = { phase: d.state === 'processing' ? 'processing' : 'claimable' };
+  host.setBackHandler(() => { if (S.ui.daily && !['claiming'].includes(S.ui.daily.phase)) { closeDaily(); return true; } return !!S.ui.daily; });
+  if (d.state === 'processing') pollDaily();
+}
+function closeDaily() { S.ui.daily = null; host.setBackHandler(null); render(); }
 
 /** «کالاهای دست قبلی»: only the products shown in the player's latest finished run (§5), loaded once per run id. */
 async function loadHistory(runId) {
@@ -413,7 +432,7 @@ function applyDaily(v) {
   S.boot.dailyReward = v;
   if (v.state === 'processing') { S.ui.daily.phase = 'processing'; render(); return pollDaily(); }
   if (v.state === 'claimable') { S.ui.daily.phase = 'claimable'; render(); return focusModal(); }
-  S.ui.daily = null;                                            // claimed (or delayed: recorded, paid later): straight on to the home
+  S.ui.daily = null; host.setBackHandler(null);                 // claimed (or delayed: recorded, paid later): straight on to the home
   if (v.state === 'delayed') toast('جایزه‌ات ثبت شد؛ واریزش کمی طول می‌کشه.');
   render();
   refreshBalance();
@@ -464,6 +483,7 @@ export async function startRun() {
     S.result = null; S.ended = null;
     resetRunUi();
     S.run = st.run; S.ref = st.run.reference;
+    S.runTarget = (S.boot && S.boot.record) || 0;               // frozen for this run (record reward / progress after 20)
     host.setBackHandler(onBack);
     go('G03.READY');
   } catch (e) {
@@ -482,6 +502,7 @@ export async function startRun() {
 export async function resume(runId) {
   go('G10.RESUMING');
   const g = S.gen;
+  S.runTarget = (S.boot && S.boot.record) || 0;   // the stored record changes only when a run finishes, so it is still this run's start value
   try { const run = await api.run(runId); if (g !== S.gen) return; host.setBackHandler(onBack); applyRun(run, 'resume'); }
   catch (e) { if (g === S.gen) handleError(e); }
 }
@@ -515,11 +536,11 @@ function applyRun(run, context) {
   if (lr && (!S.fb || S.fb.questionId !== lr.questionId)) {
     const product = S.q && S.q.questionId === lr.questionId ? S.q.product : (prev && prev.question && prev.question.questionId === lr.questionId ? prev.question.product : S.fb ? S.fb.product : null);
     S.fb = { questionId: lr.questionId, kind: lr.result, choice: lr.choice, direction: lr.direction, revealedPrice: lr.revealedPrice, equal: lr.equalPrices,
-      product: product || { displayTitle: 'کالای بعدی', imageUrl: '' } };
+      product: product || null };                                // unknown after a reload: the recap is left out rather than invented
   }
   if (lr) S.ui.lossReason = lr.result === 'timeout' ? 'timeout' : 'wrong';
   S.q = null;
-  if (run.state === 'AWAITING_OFFER') { go('G05.LOADING'); return later(context === 'resume' ? 300 : 0, activateOffer); }
+  if (run.state === 'AWAITING_OFFER') { if (S.view === 'G05.LOADING') return render(); return go('G05.ELIGIBLE'); }   // activation waits for the tap
   if (run.state === 'OFFER_OPEN') {
     if (!S.offer || S.offer.offerId !== run.offer.offerId) S.ui.offerOver = false;
     if (S.op && !S.op.operationId && S.offer && S.offer.offerId === run.offer.offerId && ['G06.PENDING', 'G06.UNKNOWN'].includes(S.view)) { S.offer = run.offer; return render(); }
@@ -556,7 +577,7 @@ export async function reveal() {
     S.ui.morph = DUR.verdictMs;
     go('G03.QUESTION_ACTIVE');
     const qid = S.q.questionId;
-    later(DUR.imageSlowMs, () => { if (S.q && S.q.questionId === qid && !S.q.imgReady) { S.q.imgSlow = true; render(); } });
+    later(DUR.imageSlowMs, () => { if (S.q && S.q.questionId === qid && !S.q.imgReady) S.q.imgSlow = true; });   // state id only: no re-render under the finger
     tickLoop();
   } catch (e) {
     if (g !== S.gen) return;
@@ -650,16 +671,17 @@ function onAnswer(ans, q) {
     haptic('correct');
     go('G03.CORRECT_FEEDBACK');
     const reached = ans.checkpointReached, fb = S.fb, reward = ans.checkpointReward || null;
-    if (ans.recordReward) S.ui.recordToast = `به رکوردت رسیدی؛ ${fa(ans.recordReward.amount)} دیجی‌کوین جایزه.`;   // a short, secondary note (§13)
-    later(DUR.correctHoldMs, () => {                           // readable verdict first, then the promotion
+    // the server pays the record reward (frozen start record above 20, reached again); its celebration follows any checkpoint one
+    S.ui.recordDue = ans.recordReward ? { target: ans.run.score, reward: ans.recordReward } : null;
+    consumable(DUR.correctHoldMs, () => {                       // readable verdict first; «مقایسه بعدی» or the hold, whichever comes first
       if (S.fb !== fb) return;
       S.ref = { displayTitle: fb.product.displayTitle, imageUrl: fb.product.imageUrl, price: fb.revealedPrice };
       S.fb = null;
       if (ans.runFinished) return finished(S.run);
-      S.ui.cpDue = reached || null;
-      S.ui.morph = DUR.promoteMs; go('G03.READY');             // the answered card moves into the first product's place
-      if (reached) later(DUR.promoteMs + 60, () => { if (S.ui.cpDue === reached) openCp(reached, reward); });
-      else showRecordToast();
+      S.ui.cpDue = reached || S.ui.recordDue || null;
+      S.ui.morph = DUR.promoteMs; go('G03.READY');             // the answered card takes the first product's place
+      const due = S.ui.cpDue;
+      if (due) later(DUR.promoteMs + 60, () => { if (S.ui.cpDue !== due) return; if (reached) openCp(reached, reward); else openRecord(); });
     });
     return;
   }
@@ -668,17 +690,34 @@ function onAnswer(ans, q) {
   go(ans.result === 'timeout' ? 'G03.TIMEOUT' : 'G03.WRONG_FEEDBACK');
   afterFeedback(S.run);
 }
-function showRecordToast() { const t = S.ui.recordToast; if (t) { S.ui.recordToast = null; toast(t); render(); } }
+/** One path out of a verdict: the hold and the link both call it; whichever is first wins, the other does nothing. */
+function consumable(ms, fn) {
+  let used = false;
+  const once = () => { if (used) return; used = true; if (S.ui.fbNext === once) S.ui.fbNext = null; fn(); };
+  S.ui.fbNext = once;
+  later(ms, once);
+}
 
-/** After a miss: the verdict stays readable in place, then the loss screen opens once (§8). */
+/** After a miss: the verdict stays readable in place, then the result opens once. An eligible continue is NOT activated
+ *  here: the server's offer window opens only when the player taps «ادامه همین دست» (no timed decision on screen). */
 function afterFeedback(run) {
   const fb = S.fb;
-  later(DUR.missHoldMs, () => {
+  consumable(DUR.missHoldMs, () => {
     if (S.fb !== fb) return;
-    if (run.state === 'AWAITING_OFFER') { go('G05.LOADING'); return activateOffer(); }
+    S.ui.leave = false;                                         // an exit sheet opened over the verdict gives way to the result
+    if (run.state === 'AWAITING_OFFER') return go('G05.ELIGIBLE');
     if (run.state === 'OFFER_OPEN') { S.offer = run.offer; go('G05.OFFER'); return tickLoop(); }
     finished(run);
   });
+}
+/** «ادامه همین دست» on the result: open the offer, then buy it at once with its own idempotency key. */
+function startContinue() {
+  if (S.view !== 'G05.ELIGIBLE' || S.ui.offline) return;
+  const cost = cfg().continueRule.cost;
+  if (S.balance != null && S.balance < cost) return;             // the server re-checks; this only avoids a request bound to fail
+  S.ui.chainContinue = true;
+  go('G05.LOADING');
+  activateOffer();
 }
 
 async function activateOffer() {
@@ -692,11 +731,19 @@ async function activateOffer() {
     delete S.keys[intent];
     S.run = act.run;
     if (act.balance != null) S.balance = act.balance;
-    if (act.offer && (act.run.state === 'OFFER_OPEN' || act.run.state === 'PAYMENT_PENDING')) { S.offer = act.offer; S.ui.offerOver = false; go('G05.OFFER'); return tickLoop(); }
+    const chain = S.ui.chainContinue; S.ui.chainContinue = false;
+    if (act.run.state === 'PAYMENT_PENDING') return applyRun(act.run);   // a purchase of this offer is already being settled
+    if (act.offer && act.run.state === 'OFFER_OPEN') { S.offer = act.offer; S.ui.offerOver = false; if (chain) return continueOffer(); go('G05.OFFER'); return tickLoop(); }
     S.ui.noOffer = act.noOfferReason;
     if (act.noOfferReason === 'no_funds') return finished(act.run, 'G05.NO_FUNDS');   // the same surface explains the shortfall (§12)
     finished(act.run);
-  } catch (e) { if (g === S.gen) handleError(e); }
+  } catch (e) {
+    if (g !== S.gen) return;
+    S.ui.chainContinue = false;
+    // nothing was bought yet: back to the result; the same key makes a retry return the same offer
+    if (e instanceof ApiError && e.network) { toast('اتصال برقرار نشد؛ دیجی‌کوینی کم نشد. دوباره امتحان کن.', true); return go('G05.ELIGIBLE'); }
+    handleError(e);
+  }
 }
 
 // ------------------------------------------------------------------------------------------------ continue / home / leave
@@ -823,7 +870,10 @@ function offerTimeUp() {
 async function lossHome() {
   if (['G05.LOADING', 'G06.PENDING', 'G06.UNKNOWN'].includes(S.view)) return;
   const r = S.run;
-  if (r && r.state === 'OFFER_OPEN' && S.offer && !S.op) {
+  if (r && r.state === 'AWAITING_OFFER') {                     // the continue was never activated: end the run once (finished as skipped)
+    const key = S.keys['leave:' + r.runId] ||= newKey();
+    try { await api.leave(r.runId, key); } catch (e) { if (e instanceof ApiError && (e.network || e.status >= 500)) { toast('اتصال برقرار نشد؛ دوباره امتحان کن.', true); return render(); } }
+  } else if (r && r.state === 'OFFER_OPEN' && S.offer && !S.op) {
     const offerId = S.offer.offerId, key = S.keys['skip:' + offerId] ||= newKey();
     try { await api.skip(offerId, key); } catch (e) { if (e instanceof ApiError && (e.network || e.status >= 500)) { toast('اتصال برقرار نشد؛ دوباره امتحان کن.', true); return render(); } }
   }
@@ -832,18 +882,37 @@ async function lossHome() {
 
 function onBack() {
   if (!S.run) return false;
+  if (S.ui.leave) { if (!S.ui.leaveBusy) closeLeave(); return true; }
   if (S.ui.cp) return true;                                   // the celebration closes with its own button only
   if (S.op || S.view === 'G03.ANSWER_PENDING') return true;   // back is blocked while an answer or a payment is in flight
   if (isLoss(S.view)) { lossHome(); return true; }
-  if (inRun(S.view)) { S.ui.leave = true; render(); return true; }
+  if (inRun(S.view)) { openLeave(); return true; }
   return false;
 }
 
+/** The exit sheet sits over the screen it was opened from; the question's deadline keeps running underneath. */
+let leaveFocus = null;
+function openLeave() {
+  if (!S.run || S.ui.leave || S.op || S.ui.cp) return;
+  leaveFocus = document.activeElement;
+  S.ui.leave = true; render();
+  requestAnimationFrame(() => { const b = root.querySelector('.sheet [data-act="leave-no"]'); if (b) b.focus({ preventScroll: true }); });
+}
+function closeLeave() {
+  S.ui.leave = false; render();
+  requestAnimationFrame(() => { const t = leaveFocus && leaveFocus.isConnected ? leaveFocus : root.querySelector('[data-act="back"],[data-act="leave-ask"]'); if (t) t.focus({ preventScroll: true }); });
+}
 export async function leaveConfirmed() {
-  if (!S.run) return;
-  S.ui.leave = false;
-  const key = S.keys['leave:' + S.run.runId] ||= newKey();
-  try { await api.leave(S.run.runId, key); boot(); } catch (e) { handleError(e); }   // leaving is not losing: straight home
+  if (!S.run || S.ui.leaveBusy) return;
+  S.ui.leaveBusy = true; render();
+  const key = S.keys['leave:' + S.run.runId] ||= newKey(), g = S.gen;
+  try { await api.leave(S.run.runId, key); if (g === S.gen) boot(); }   // leaving is not losing: straight home
+  catch (e) {
+    if (g !== S.gen) return;
+    S.ui.leaveBusy = false;
+    if (e instanceof ApiError && e.network) { toast('اتصال برقرار نشد؛ دست هنوز بازه. دوباره امتحان کن.', true); return render(); }
+    S.ui.leave = false; handleError(e);
+  }
 }
 
 // ------------------------------------------------------------------------------------------------ checkpoint (G04)
@@ -853,18 +922,30 @@ export async function leaveConfirmed() {
  * is «ادامه بده» (no countdown, no automatic continue, no second «دریافت»).
  */
 let cpToken = 0, cpTimers = [];
-function openCp(c, reward) {
-  const k = S.run.runId + ':' + c.checkpointId;
-  if (S.ui.cpShown.has(k)) return;
-  S.ui.cpShown.add(k);
+function mountCelebration(key, html, rd) {
+  if (S.ui.cpShown.has(key)) return false;
+  S.ui.cpShown.add(key);
   const token = ++cpToken;
-  S.ui.cp = c; S.ui.cpDue = null; S.ui.cpAt = now();
+  S.ui.cp = { key }; S.ui.cpDue = null; S.ui.cpAt = now();
+  S.ui.leave = false;
   haptic('checkpoint');
-  cpEl.innerHTML = V.cpOverlay(c, cpIndex(c), reward);
+  cpEl.innerHTML = html;
   screenEl.inert = true;
-  root.dataset.view = stateId();
-  cpTimers.push(later(DUR.cpGuardMs, () => { if (cpToken !== token) return; const b = $('.q-cp [data-act="cp-go"]', cpEl); if (b) b.focus({ preventScroll: true }); }));
+  root.dataset.view = stateId(); root.dataset.rd = rd;
+  cpTimers.push(later(DUR.cpGuardMs, () => { if (cpToken !== token) return; const b = $('[data-act="cp-go"]', cpEl); if (b) b.focus({ preventScroll: true }); }));
+  return true;
 }
+function openCp(c, reward) {
+  const i = cpIndex(c), list = cfg().checkpoints;
+  if (!mountCelebration(S.run.runId + ':' + c.checkpointId, R.checkpoint(c, i, reward, list[i + 1] || null), 'checkpoint-' + c.requiredCorrect)) return closeCpNext();
+}
+/** The record reached again (the server granted its reward with the answer). Shown once per run, after any checkpoint. */
+function openRecord() {
+  const r = S.ui.recordDue; S.ui.recordDue = null;
+  if (!r || !S.run) return;
+  mountCelebration(S.run.runId + ':record', R.record(r.target, r.reward), 'record');
+}
+function closeCpNext() { if (S.ui.recordDue && !S.ui.cp) openRecord(); }
 function unmountCp() {
   cpToken++;
   cpTimers.forEach(clearTimeout); cpTimers = [];
@@ -878,7 +959,7 @@ export function closeCp() {
   unmountCp();
   S.ui.guardUntil = now() + DUR.afterCpGuardMs;
   render();
-  showRecordToast();
+  closeCpNext();
 }
 
 // ------------------------------------------------------------------------------------------------ timers
@@ -910,10 +991,16 @@ function tickLoop() {
       const q = S.q, n = timerNow();
       if (!q.pick && !q.locked) {
         const tm = $('[data-timer]', root);
-        if (tm) {
-          tm.style.setProperty('--p', n.p);
-          if (tm.classList.contains('is-low') !== n.low) { tm.classList.toggle('is-low', n.low); tm.classList.toggle('is-run', !n.low); const l = tm.querySelector('.q-timer__l'); if (l) l.textContent = n.low ? 'وقت داره تموم می‌شه' : 'ثانیه وقت داری'; }
-          const b = tm.querySelector('.q-timer__n'); if (b && b.textContent !== n.t) { b.textContent = n.t; tm.setAttribute('aria-label', `${n.t} ثانیه`); }
+        if (tm) {   // updated in place: no re-render under the player's finger
+          const ring = tm.querySelector('[data-ring]'); if (ring) ring.setAttribute('stroke-dasharray', `${(n.p * R.TIMER_C).toFixed(1)} 151`);
+          const t = tm.querySelector('.time'); if (t && t.textContent !== n.t) t.textContent = n.t;
+          if (tm.getAttribute('aria-label') !== n.label) tm.setAttribute('aria-label', n.label);
+          if (tm.classList.contains('urgent') !== n.low) {   // the last 3 s: coral timer, pulse and one-line strip; geometry unchanged
+            tm.classList.toggle('urgent', n.low);
+            const sec = tm.closest('.game');
+            if (sec) { sec.classList.toggle('urgent-screen', n.low); sec.dataset.st = n.low ? 'urgent' : 'active'; const u = sec.querySelector('[data-urgent]'); if (u) u.hidden = !n.low; }
+            if (!S.ui.leave) root.dataset.rd = n.low ? 'urgent' : 'active';
+          }
         }
         // two short warnings at 3 s and 1 s, only through the host's haptics (§7); the visual emphasis works without them
         if (n.rem <= 3000 && q.buzz < 1) { q.buzz = 1; haptic('warning'); }
@@ -995,6 +1082,20 @@ export async function copyCode() {
 }
 
 // ------------------------------------------------------------------------------------------------ connectivity & lifecycle
+/** «بررسی اتصال» on the offline page: the run is read again; being online is not proof that the service answers. */
+async function reconnect() {
+  if (!S.run) return boot();
+  if (S.ui.resuming) return;
+  S.ui.resuming = true; render();
+  const g = S.gen;
+  try { const run = await api.run(S.run.runId); if (g !== S.gen) return; S.ui.offline = false; S.ui.resuming = false; applyRun(run); }
+  catch (e) {
+    if (g !== S.gen) return;
+    S.ui.resuming = false;
+    if (e instanceof ApiError && e.network) { toast('هنوز وصل نشدیم؛ اینترنت رو بررسی کن.', true); return render(); }
+    handleError(e);
+  }
+}
 function setOffline(off) {
   S.ui.offline = off;
   if (off) return render();
@@ -1020,24 +1121,40 @@ export function init(el) {
     if (S.run && inRun(S.view) && !S.ui.cp && !['G03.CORRECT_FEEDBACK', 'G03.WRONG_FEEDBACK', 'G03.TIMEOUT'].includes(S.view)) reconcileRun();
   });
   root.addEventListener('click', onClick);
+  document.addEventListener('keydown', onKey);
   boot();
 }
 
+/** Exit sheet: Escape closes it, Tab stays inside it (focus trap). */
+function onKey(e) {
+  if (!S.ui.leave) return;
+  if (e.key === 'Escape') { e.preventDefault(); if (!S.ui.leaveBusy) closeLeave(); return; }
+  if (e.key !== 'Tab') return;
+  const f = [...root.querySelectorAll('.sheet button:not([disabled])')]; if (!f.length) return;
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+}
 function onClick(e) {
+  if (e.target.classList && e.target.classList.contains('sheet-layer')) { if (S.ui.leave && !S.ui.leaveBusy) closeLeave(); return; }   // scrim
   const el = e.target.closest('[data-act]'); if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
   const a = el.dataset.act;
   const acts = {
-    boot, home: boot, start: startRun, reveal, continue: continueOffer, 'ans-higher': () => answer('higher'), 'ans-lower': () => answer('lower'),
+    boot, home: boot, start: startRun, reveal, 'ans-higher': () => answer('higher'), 'ans-lower': () => answer('lower'),
     guide: openGuide, 'guide-close': closeGuide,
+    continue: () => (S.view === 'G05.ELIGIBLE' ? startContinue() : continueOffer()),
+    'fb-next': () => { if (S.ui.fbNext) S.ui.fbNext(); },
+    'leave-ask': openLeave, reconnect,
+    'daily-open': () => { openDaily(); render(); focusModal(); },
+    'daily-done': () => { toast('جایزه امروزت رو گرفتی؛ فردا دوباره سر بزن.'); render(); },
     'onb-next': () => { const o = S.ui.onb; if (o && !o.busy) { o.page = 2; o.error = null; go('G02.ONBOARDING'); } },
     'onb-prev': () => { const o = S.ui.onb; if (o && !o.busy) { o.page = 1; o.error = null; go('G02.ONBOARDING'); } },
     'onb-skip': finishOnboarding, 'onb-done': finishOnboarding,
     'spot-next': () => { const o = S.ui.onb; if (o && o.step < SPOT.length - 1) { o.step++; render(); } },
     'spot-prev': () => { const o = S.ui.onb; if (o && o.step > 0) { o.step--; render(); } },
-    'daily-claim': claimDaily, 'daily-check': checkDaily, 'daily-close': () => { S.ui.daily = null; render(); },
+    'daily-claim': claimDaily, 'daily-check': checkDaily, 'daily-close': () => { if (S.ui.daily && S.ui.daily.phase !== 'claiming') closeDaily(); },
     resume: () => resume(S.boot.activeRun.runId),
     back: () => onBack(),
-    'leave-no': () => { S.ui.leave = false; render(); },
+    'leave-no': () => { if (S.ui.leave && !S.ui.leaveBusy) closeLeave(); },
     'leave-yes': leaveConfirmed,
     'loss-home': lossHome,
     'cp-go': closeCp,

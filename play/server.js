@@ -835,5 +835,8 @@ export const reviewer = {
     save();
   },
   resetPlays() { clockNow = Date.now(); part(dateOf(clockNow)).playsUsed = 0; save(); },
+  // PREVIEW-ONLY shortcuts for reviewers (?review panel). They reach this in-browser mock only; the player never calls them.
+  setRecord(n) { S.player.record = Math.max(0, Math.floor(n)); S.player.recordRunId = null; save(); },
+  correctChoice() { const run = activeRun(); if (!run || run.state !== 'QUESTION_OPEN') return null; const q = openQuestion(run); return q.comparisonPrice >= q.referencePrice ? 'higher' : 'lower'; },
   resetAll() { S = fresh(); save(); },
 };

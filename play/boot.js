@@ -51,6 +51,11 @@ if (/[?&]review\b/.test(location.search)) {
   <button id="dvOnb">reset onboarding</button> <button id="dvDaily">3 attended days + unclaimed reward</button><br>
   <button id="dvPlays">reset today's plays</button> <button id="dvReset">reset all demo data</button>
 </fieldset>
+<fieldset><legend>Preview shortcuts (demo only, not part of the game)</legend>
+  record <input type="number" id="dvRec" min="0" style="width:4em"> <button id="dvRecGo">set</button><br>
+  open question: <button id="dvRight">answer right</button> <button id="dvWrong">answer wrong</button><br>
+  <label><input type="checkbox" id="dvAuto"> keep answering right</label>
+</fieldset>
 <fieldset><legend>Network (simulated)</legend>
   delay <select id="dvLat"><option value="200">0.2 s</option><option value="800">0.8 s</option><option value="2500">2.5 s</option><option value="6000">6 s</option></select>
   <label><input type="checkbox" id="dvOff"> offline</label>
@@ -66,9 +71,14 @@ if (/[?&]review\b/.test(location.search)) {
   $('#dvDaily').onclick = () => { reviewer.seedAttended(3); reload(); };
   $('#dvPlays').onclick = () => { reviewer.resetPlays(); reload(); };
   $('#dvReset').onclick = () => { reviewer.resetAll(); reload(); };
+  const pick = right => { const c = reviewer.correctChoice(); if (!c) return; const d = right ? c : (c === 'higher' ? 'lower' : 'higher'); const b = app.querySelector(`[data-act="ans-${d}"]:not([disabled])`); if (b) b.click(); };
+  $('#dvRecGo').onclick = () => { reviewer.setRecord(Number($('#dvRec').value)); reload(); };
+  $('#dvRight').onclick = () => pick(true);
+  $('#dvWrong').onclick = () => pick(false);
+  setInterval(() => { if (!$('#dvAuto').checked) return; const r = app.querySelector('[data-act="reveal"]:not([disabled]), [data-act="cp-go"]'); if (r) r.click(); else pick(true); }, 700);
   $('#dvLat').onchange = e => { net.latencyMs = Number(e.target.value); };
   $('#dvOff').onchange = e => { net.offline = e.target.checked; window.dispatchEvent(new Event(net.offline ? 'offline' : 'online')); };
-  setInterval(() => { const v = app.dataset.view; if (v) $('#dvState').textContent = v; }, 200);
+  setInterval(() => { const v = app.dataset.view; if (v) $('#dvState').textContent = `${app.dataset.rd || '–'} · ${v}`; }, 200);
 }
 
 await import('../src/main.js');

@@ -6,6 +6,10 @@
 set -euo pipefail
 SRC="${1:?usage: ./sync-from-gheimat-shenas.sh /path/to/gheimat-shenas}"
 DST="$(cd "$(dirname "$0")" && pwd)"
+# The play-only review redesign (2026-10-22) lives in src/redesign.js, styles/redesign.css and src/game.js; a sync would erase it.
+if [ -f "$DST/styles/redesign.css" ] && [ "${FORCE_OVERWRITE_REDESIGN:-}" != "1" ]; then
+  echo "Refusing to sync: this Play copy carries the review redesign. Set FORCE_OVERWRITE_REDESIGN=1 to discard it." >&2; exit 1
+fi
 rm -rf "$DST/src" "$DST/styles" "$DST/fonts" "$DST/assets"
 cp -R "$SRC/player/src" "$SRC/player/styles" "$SRC/player/fonts" "$SRC/player/assets" "$DST/"
 cp "$SRC/player/dev/reviewer.css" "$DST/play/reviewer.css"

@@ -478,3 +478,77 @@
 @media(max-height:740px){.rd .game .topbar{height:56px;min-height:56px}.rd .game .progress-summary{margin-bottom:8px}.rd .game .answer-context{margin-bottom:6px}}
 @media(max-height:740px){.rd .record-special .badge-stage{height:150px}.rd .record-special .badge-stage .badge{width:128px;height:140px}.rd .record-special .badge-halo{width:150px;height:150px}
   .rd .record-special h1{font-size:26px;margin-top:8px}.rd .record-special .record-number{font-size:54px;line-height:1.1}.rd .record-special .next-goal{display:none}.rd .celebration .reward-line{margin-top:12px}}
+
+/* ---------------------------------------------------------------- device-ratio audit 2026-10-23 */
+/* last resort: if a screen ever outgrows the viewport (tiny phone, enlarged text), its own column scrolls; the WebView
+   page itself never scrolls, so focus can no longer push the header off the top */
+.rd .screen{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.rd .celebration{overflow-y:auto}
+.rd .icon-btn{flex:none}
+/* the verdict link fits the fixed footer instead of hanging below it */
+.rd .game-foot{display:flex;align-items:center;justify-content:center;padding-top:6px}
+.rd .game-foot .link-btn{padding:2px 8px}
+.rd .game-foot .urgent-strip{margin:0}
+/* tall screens: the answers stay in the thumb zone, the spare height sits above them */
+.rd .answer-area{margin-top:auto}
+
+/* very short screens (≤600 px tall, e.g. 320×568): one compact tier on top of the ≤740 px rules */
+@media(max-height:600px){
+  .rd .screen{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .rd .topbar,.rd .game .topbar,.rd .home .topbar{height:48px;min-height:48px}
+  .rd .game .progress{padding-bottom:6px}.rd .game .progress-summary{margin-bottom:4px}
+  .rd .milestones{height:38px}.rd .milestone>span{width:22px;height:22px;margin-bottom:2px}
+  .rd .game .reference{min-height:0;padding:8px 10px;gap:10px}.rd .reference img{width:48px;height:56px}
+  .rd .reference h3{font-size:13px}.rd .price{font-size:22px}
+  .rd .game .decision-head{min-height:56px}.rd .decision-head h2{font-size:15px;margin-bottom:2px}
+  .rd .timer{width:48px;height:48px}.rd .timer .time{font-size:22px}
+  .rd .game .product-stage{min-height:0;padding:8px 12px}.rd .product-stage img,.rd .product-stage .img-missing{height:72px;width:96px;margin-bottom:4px}
+  .rd .product-stage h3{font-size:15px;margin-bottom:2px}.rd .reveal-price{font-size:20px}
+  .rd .mystery-icon{width:60px;height:66px;font-size:36px;margin-bottom:8px;border-radius:20px 20px 20px 5px}
+  .rd .product-stage .btn{margin-top:8px}
+  .rd .game .answer-area{padding-top:8px}.rd .answer{min-height:52px;font-size:18px}
+  .rd .game .game-foot{height:22px;min-height:22px;padding-top:2px}
+  .rd .btn{min-height:50px;font-size:17px}
+  /* home */
+  .rd .home .greeting{margin-bottom:6px;font-size:12px}
+  .rd .home .record-card{min-height:84px;padding:10px 16px}.rd .home .record-card .number{font-size:36px}
+  .rd .home .record-card .badge{width:64px;height:68px}.rd .record-empty{padding:6px}.rd .record-empty svg{width:36px;height:36px}
+  .rd .home .section-label{margin:8px 0 6px}.rd .home .history{min-height:0}.rd .home .history-img{height:48px}.rd .home .history-img img{width:40px;height:40px}
+  .rd .home .tag-hero{height:52px}.rd .home .home-hero h1{font-size:22px;margin:2px 0}.rd .home .home-hero p{display:none}
+  .rd .home .chance-row{margin:6px 0}.rd .home .daily-link{padding-top:4px}.rd .countdown-btn{min-height:58px}
+  /* celebrations */
+  .rd .celebration .badge-stage,.rd .record-special .badge-stage{height:118px;margin-top:4px}
+  .rd .celebration .badge-stage .badge{width:96px;height:106px}.rd .celebration .badge-halo{width:118px;height:118px}.rd .spark{display:none}
+  .rd .celebration .badge-title{margin-top:4px;font-size:14px}.rd .celebration h1{font-size:24px;margin:4px 0}.rd .celebration h1 .big-num{font-size:40px}
+  .rd .celebration .achievement-note{margin-top:2px;line-height:1.7}.rd .record-special .record-number{font-size:40px}
+  .rd .celebration .reward-line{margin-top:8px;padding:6px 14px}.rd .celebration .bottom-actions{margin-bottom:0;padding-top:10px}
+  /* result: smaller hero so the stats stay in view above the actions */
+  .rd .result .result-badge{width:60px;height:66px}.rd .result h1{font-size:26px;margin:2px 0}
+  .rd .result .stats{margin-top:8px;padding-block:8px}.rd .stat strong{font-size:24px}.rd .result .ranking-line{margin:8px 0}
+  .rd .result .bottom-actions{padding-top:8px;gap:6px}.rd .result .bottom-actions .inline-alert{padding:6px 10px;line-height:1.7}
+  .rd .result .balance-inline{margin-bottom:4px}.rd .result .footer-small{display:none}
+  /* daily / help / system */
+  .rd .daily-hero{height:100px;margin:0}.rd .daily-hero .coin-art{width:80px;height:80px;border-width:5px}.rd .daily-hero .coin-art svg{width:40px;height:40px}
+  .rd .daily-hero:before,.rd .daily-hero:after{display:none}.rd .daily-screen h1{font-size:26px;margin:4px 0}
+  .rd .week{margin:12px 0}.rd .daily-value{padding:6px 0}.rd .daily-value strong{font-size:32px}
+  .rd .help-screen h1{font-size:24px;margin-top:6px}.rd .help-row{padding:12px 0}
+  .rd .system-screen .system-icon{width:80px;height:80px;margin-bottom:16px}.rd .system-screen h1{font-size:24px}
+  .rd .system-screen .bottom-actions{bottom:max(14px,env(safe-area-inset-bottom))}
+  .rd .sheet h2{font-size:22px}.rd .sheet p{margin-bottom:12px;line-height:1.8}.rd .sheet-icon{width:46px;height:46px;margin-bottom:10px}
+}
+/* elastic product card: between the breakpoints (e.g. 360×780, 480×800) the photo gives up height before anything clips */
+.rd .game .product-stage{min-height:0}
+.rd .product-stage .stage-img{flex:0 1 151px;min-height:52px;display:flex;justify-content:center;margin-bottom:12px}
+.rd .product-stage .stage-img img,.rd .product-stage .stage-img .img-missing{height:100%;max-height:151px;width:187px;margin:0}
+.rd .loading-stage .loading-image{flex:0 1 140px;min-height:40px}
+@media(max-height:600px){.rd .product-stage .stage-img{margin-bottom:4px}.rd .product-stage .stage-img img{max-height:96px}}
+/* celebrations between 741 and 820 px tall */
+@media(max-height:820px) and (min-height:741px){.rd .celebration .badge-stage{height:204px;margin-top:12px}.rd .celebration .badge-stage .badge{width:164px;height:178px}
+  .rd .celebration .badge-halo{width:186px;height:186px}.rd .celebration h1{margin-top:8px}}
+/* narrowest phones (320 px): the home header keeps every control on screen */
+@media(max-width:340px){.rd .home .topbar{gap:0}.rd .home .brand{font-size:16px;gap:4px}.rd .home .brand-mark svg{width:18px;height:18px}.rd .coin-pill{padding:5px 8px;font-size:13px}}
+@media(max-height:600px){.rd .game .reference .eyebrow{display:none}.rd .game .game-foot{height:20px;min-height:20px}}
+@media(max-height:600px){.rd .game-foot .link-btn::after{inset:-6px -16px}}   /* the hit area stays inside the screen (no 3 px scroll) */
+.rd .product-stage>*:not(.stage-img):not(.loading-image){flex-shrink:0}   /* only the photo yields height; the title and price never get squeezed */
+/* tall screens (≥ 960 px): the product card and photo use part of the spare height instead of leaving a gap */
+@media(min-height:960px){.rd .product-stage{max-height:380px}.rd .product-stage .stage-img{flex-basis:190px}.rd .product-stage .stage-img img{max-height:190px;width:230px}}

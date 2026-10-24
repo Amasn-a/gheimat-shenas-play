@@ -57,12 +57,11 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 .q-chances{font-size:14px;color:var(--ink-2)}.q-chances b{color:var(--ink)}
 .q-homesheet>.q-btn{flex:none}
 .q-homesheet .q-status{font-size:12px;padding:8px 12px}
-/* Tier names are part of the badge artwork's ribbon, including on the zero-record boundary. */
-.q-medal{position:relative;display:inline-grid;place-items:center;width:160px;max-width:100%;aspect-ratio:1;flex:none;isolation:isolate;--badge-bg:#123e33;--badge-fg:#fff}
-.q-medal img{width:94%;height:94%;object-fit:contain;filter:drop-shadow(0 6px 10px #15162c18)}
-.q-medal>b{position:absolute;z-index:1;top:70%;inset-inline:2%;padding:5px 7px;border-radius:8px;background:var(--badge-bg);color:var(--badge-fg);font-size:14px;font-weight:800;line-height:1.5;text-align:center;white-space:normal;box-shadow:0 3px 0 #15162c24}
-.q-medal.tier-1{--badge-bg:#243ec4}.q-medal.tier-2{--badge-bg:#8b290e}.q-medal.tier-3{--badge-bg:#5b258e}
-.q-record .q-medal{width:110px}.q-record .q-medal>b{font-size:11px}.q-record .q-medal img{width:100%;height:100%}
+
+
+
+
+
 .q-stack{width:34px;height:34px}.q-stack .q-coin{width:30px;height:30px}.q-stack b{top:auto;bottom:-3px;left:-4px;right:auto;transform:none;background:var(--ink);color:#fff;border-radius:6px;min-width:18px;line-height:18px;font-size:11px}
 /* Question: title and image have independent sizing; no clamp and no image crop. */
 .q-game{gap:10px}
@@ -141,27 +140,27 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 .q-onb--lesson,.q-guide--demo{gap:12px}.q-onb--lesson .q-foot,.q-guide--demo .q-foot{padding-top:4px}
 .q-guide__body{overflow:visible;display:grid;align-content:center;gap:14px}
 .q-gsec{border:0;padding:14px;background:var(--surface);border-radius:20px;gap:14px}.q-gsec h2{font-size:17px}.q-gsec p{font-size:13px;line-height:1.8}.q-gart{width:48px;height:48px;background:#e4e8ff;color:var(--blue)}
-.q-onb2{overflow:visible;display:flex;flex-direction:column;justify-content:center;padding:0}.q-onb2 h1{font-size:28px}.q-onb2__sub{font-size:14px}.q-badgegrid{gap:12px;margin-top:12px}.q-badgegrid .q-medal{width:min(142px,34vw)}.q-badgegrid span{font-size:12px}.q-onb2__note{margin-top:10px;font-size:12px}
+.q-onb2{overflow:visible;display:flex;flex-direction:column;justify-content:center;padding:0}.q-onb2 h1{font-size:28px}.q-onb2__sub{font-size:14px}.q-badgegrid{gap:12px;margin-top:12px}.q-badgegrid span{font-size:12px}.q-onb2__note{margin-top:10px;font-size:12px}
 @keyframes demo-appear{from{opacity:0;transform:translateX(-20px)}}@keyframes demo-tap{40%{transform:scale(.94)}}@keyframes demo-promote{from{transform:translateX(-50px);opacity:.4}}
 /* Small phones: shrink decorative space first, keep every product name and all actions. */
 @media(max-width:699px){
  .q-home__scroll{flex:0 0 auto}.q-homesheet{flex:1 1 0}.q-home-art{max-height:220px}.q-pcard{grid-template-columns:1fr;justify-items:center;text-align:center;padding:10px;gap:4px}.q-pcard .q-img{grid-row:auto;width:56px;height:56px}.q-pcard__t{font-size:12px;line-height:1.6}.q-pcard__loss{font-size:12px}
 }
 @media(max-height:740px) and (max-width:899px){
- :root{--gutter:16px}.q-page{gap:8px;padding-top:6px;padding-bottom:max(12px,env(safe-area-inset-bottom))}.q-hdr{min-height:44px}.q-home{gap:10px}.q-home__scroll{gap:8px}.q-record,.q-record--empty{min-height:96px;padding:12px 18px}.q-record b{font-size:34px}.q-record small{font-size:11px}.q-record .q-medal{width:84px}.q-record .q-medal>b{font-size:9px;padding:3px}
+ :root{--gutter:16px}.q-page{gap:8px;padding-top:6px;padding-bottom:max(12px,env(safe-area-inset-bottom))}.q-hdr{min-height:44px}.q-home{gap:10px}.q-home__scroll{gap:8px}.q-record,.q-record--empty{min-height:96px;padding:12px 18px}.q-record b{font-size:34px}.q-record small{font-size:11px}
  .q-home-art{height:60px;max-height:100px;min-height:0}.q-homesheet{gap:6px}.q-homesheet h2{font-size:24px}.q-eyebrow{font-size:11px}.q-hist__hd{min-height:32px;margin-bottom:4px}.q-hist__hd h2{font-size:15px}.q-pcard{padding:8px}.q-pcard .q-img{height:40px;width:44px}.q-pcard__t{font-size:11px}.q-hist__empty{padding:12px}
  .q-track{height:45px}.q-track__ic{height:32px}.q-track__line{top:15px}.q-timer{min-height:40px;padding-block:5px 8px}.q-timer__n{font-size:23px}.q-game__main{gap:8px;min-height:230px}.q-ref,.q-ref--strip{min-height:90px;padding:8px 12px;gap:10px}.q-ref .q-img{width:60px;height:60px}.q-ref__t{font-size:14px;line-height:1.5}.q-ref .q-price b{font-size:23px}.q-label{font-size:12px}.q-ref__b{gap:1px}
  .q-cmp{min-height:155px;padding:8px 12px;gap:2px}.q-cmp__t{font-size:14px;line-height:1.5}.q-cmp .q-img{min-height:42px;max-height:100px}.q-cmp .q-price b{font-size:23px}.q-cmp .q-price{min-height:28px}.q-cmp__hint{font-size:12px}.q-decide{gap:2px}.q-prompt{font-size:14px;min-height:20px}.q-ab{min-height:50px;font-size:17px}.q-invite{min-height:150px;padding:12px}.q-invite h2{font-size:20px}.q-invite__tag{height:34px;width:25px}.q-invite .q-btn{min-height:48px;margin-top:6px}
  .q-loss{gap:6px}.q-loss__main{gap:6px}.q-loss__badge{width:56px}.q-loss__h{font-size:22px}.q-loss__score b{font-size:44px}.q-loss__score span{font-size:15px}.q-loss__act .q-btn{min-height:46px;font-size:16px}.q-recap{gap:2px;padding-top:6px}.q-recap__row{font-size:13px}.q-recap__why{font-size:13px}.q-cost{font-size:12px}
  .q-cp__badge{width:180px}.q-cp__h{font-size:28px}.q-cp__in{gap:6px}.q-demo{padding:12px}.q-demo-art{height:70px}.q-demo-top{margin-bottom:10px}.q-demo-answers{margin-top:10px}.q-demo-caption{min-height:0}.q-demo-caption h2{font-size:19px}.q-demo-caption p{font-size:14px;line-height:1.7}.q-tutorial{gap:8px}.q-demo-controls{gap:4px 6px}.q-demo-dot{min-width:40px}.q-demo-card h3{font-size:13px}.q-onb--lesson .q-foot{gap:2px}.q-onb--lesson .q-foot .q-btn{min-height:46px;font-size:16px}.q-onb--lesson .q-foot .q-btn--text{min-height:40px;font-size:13px}
- .q-badgegrid .q-medal{width:108px}.q-badgegrid .q-medal>b{font-size:10px}.q-onb2 h1{font-size:24px}.q-gsec{padding:10px;gap:10px}.q-gsec h2{font-size:15px}.q-gsec p{font-size:12px}.q-guide__body{gap:10px}.q-gart{width:40px;height:40px}
+ .q-onb2 h1{font-size:24px}.q-gsec{padding:10px;gap:10px}.q-gsec h2{font-size:15px}.q-gsec p{font-size:12px}.q-guide__body{gap:10px}.q-gart{width:40px;height:40px}
 }
 @media(max-width:374px){.q-brand{gap:6px}.q-brand b{font-size:17px}.q-guidebtn{font-size:12px}.q-home>.q-hdr{gap:4px}.q-bal{padding-inline:8px;gap:4px}.q-bal b{font-size:15px}.q-logo--s{width:23px;height:34px}.q-demo-dot{min-width:38px}.q-demo-pause{padding-inline:8px}}
 /* Desktop is an arena with two full-size product panels, not an enlarged phone. */
 @media(min-width:900px){
  :root{--gutter:48px}.q-page{padding-block:24px 30px;gap:20px}.q-hdr{min-height:56px}.q-brand b{font-size:24px}.q-logo--s{width:32px;height:46px}.q-guidebtn{font-size:15px;padding-inline:16px}.q-bal{height:44px;padding-inline:16px}
  .q-home{display:grid;grid-template-columns:minmax(300px, .8fr) minmax(420px,1.2fr);grid-template-rows:64px 1fr;column-gap:64px;row-gap:24px}
- .q-home>.q-hdr{grid-column:1/-1}.q-home__scroll{grid-column:1;grid-row:2;justify-content:center;gap:30px;align-self:center}.q-record{min-height:180px;padding:24px 30px;border-radius:28px}.q-record b{font-size:64px}.q-record small{font-size:14px}.q-record .q-medal{width:140px}.q-record .q-medal>b{font-size:13px}
+ .q-home>.q-hdr{grid-column:1/-1}.q-home__scroll{grid-column:1;grid-row:2;justify-content:center;gap:30px;align-self:center}.q-record{min-height:180px;padding:24px 30px;border-radius:28px}.q-record b{font-size:64px}.q-record small{font-size:14px}
  .q-homesheet{grid-column:2;grid-row:2;align-self:center;justify-content:center;gap:16px;padding:0 20px}.q-home-art{width:100%;height:min(38dvh,340px);max-height:340px;flex:none;margin:0}.q-homesheet h2{font-size:48px;max-width:15ch;line-height:1.2}.q-eyebrow{font-size:14px}.q-chances{font-size:16px}.q-homesheet>.q-btn{max-width:390px;min-height:60px}.q-hist__hd h2{font-size:19px}.q-pcard{grid-template-columns:70px 1fr;padding:16px;min-height:130px}.q-pcard .q-img{width:70px;height:90px}.q-pcard__t{font-size:14px}
  .q-game{display:grid;grid-template-columns:1fr;grid-template-rows:56px 60px 50px minmax(270px,1fr) auto;row-gap:16px;max-width:1240px;margin:auto}
  .q-game>.q-hdr,.q-game>.q-track,.q-game>.q-timer{width:100%;max-width:1100px;margin-inline:auto}.q-game>.q-track{width:calc(100% - 80px);height:60px}.q-hdr--game .q-hdr__t{font-size:24px}.q-score{padding:6px 18px}.q-score b{font-size:26px}.q-score small{font-size:14px}
@@ -173,7 +172,7 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
  .q-cp{max-width:1440px;margin:auto;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 25%,#fff9 0,transparent 65%),#dff9eb}.q-cp__in{flex:0 1 auto;gap:14px}.q-cp__badge{width:min(270px,36dvh)}.q-cp__h{max-width:20ch;font-size:44px}.q-cp .q-foot{width:360px;margin-top:20px}
  .q-loss{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:52px 1fr;column-gap:64px;max-width:1100px;margin:auto}.q-loss>.q-hdr{grid-column:1/-1}.q-loss__main{grid-column:1;grid-row:2;gap:12px;align-self:center}.q-loss__act{grid-column:2;grid-row:2;align-self:center;gap:14px;padding:32px;border-radius:28px;background:#f0f1f8}.q-loss__act .q-btn{min-height:56px;font-size:18px}.q-loss__badge{width:96px}.q-loss__h{font-size:34px}.q-loss__sub{font-size:16px}.q-loss__score b{font-size:76px}.q-loss__score span{font-size:18px}.q-loss__tier p{font-size:16px}.q-recap__row,.q-recap__why{font-size:15px}.q-cost{font-size:14px}
  .q-tutorial{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:1fr auto;gap:32px;align-items:center;max-width:1100px;width:100%;margin:auto;flex:1 1 0;padding-block:30px}.q-demo{grid-row:1/-1;padding:30px;align-self:center}.q-demo-top{font-size:16px}.q-demo-top>span{font-size:13px}.q-demo-art{height:160px}.q-demo-card{padding:16px 10px;gap:8px}.q-demo-card h3{font-size:16px}.q-demo-card>b{font-size:22px}.q-demo-card small{font-size:12px}.q-demo-answers{font-size:16px;gap:14px;margin-top:20px}.q-demo-caption{text-align:right;min-height:0;align-self:end}.q-demo-caption h2{font-size:32px}.q-demo-caption p{font-size:18px;margin-top:12px;max-width:32ch}.q-demo-controls{align-self:start;justify-content:flex-start}.q-demo-dot{min-width:44px;min-height:44px;font-size:14px}.q-demo-pause{min-height:44px;font-size:14px}
- .q-onb--lesson .q-foot,.q-guide--demo .q-foot{grid-template-columns:1fr 1fr;max-width:600px;width:100%;align-self:center}.q-onb2{max-width:900px;align-self:center;gap:12px}.q-onb2 h1{font-size:42px}.q-onb2__sub{font-size:18px}.q-badgegrid{grid-template-columns:repeat(4,1fr);gap:26px;margin-top:26px}.q-badgegrid .q-medal{width:180px}.q-onb2+.q-foot{max-width:480px;width:100%;align-self:center}.q-guide__body{grid-template-columns:1fr 1fr;max-width:1000px;align-self:center;gap:24px}.q-gsec{padding:24px}.q-gsec h2{font-size:21px}.q-gsec p{font-size:16px}.q-guide:not(.q-guide--demo)>.q-foot{grid-template-columns:1fr 1fr;max-width:600px;width:100%;align-self:center}
+ .q-onb--lesson .q-foot,.q-guide--demo .q-foot{grid-template-columns:1fr 1fr;max-width:600px;width:100%;align-self:center}.q-onb2{max-width:900px;align-self:center;gap:12px}.q-onb2 h1{font-size:42px}.q-onb2__sub{font-size:18px}.q-badgegrid{grid-template-columns:repeat(4,1fr);gap:26px;margin-top:26px}.q-onb2+.q-foot{max-width:480px;width:100%;align-self:center}.q-guide__body{grid-template-columns:1fr 1fr;max-width:1000px;align-self:center;gap:24px}.q-gsec{padding:24px}.q-gsec h2{font-size:21px}.q-gsec p{font-size:16px}.q-guide:not(.q-guide--demo)>.q-foot{grid-template-columns:1fr 1fr;max-width:600px;width:100%;align-self:center}
  .q-state{max-width:480px;width:100%;align-self:center}.q-share{max-width:460px}.q-share-preview{max-height:56dvh}
 }
 /* Compact landscape desktop retains complete content without a phantom scrollbar. */
@@ -199,3 +198,30 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 @media(max-height:740px) and (max-width:899px){.q-invite__goal{margin-top:2px}.q-cp__next{font-size:14px}.q-homesheet .q-eyebrow{font-size:13px}}
 @media(min-width:900px){.q-demo-controls{justify-content:flex-start}.q-demo-step{justify-content:flex-start}.q-loss__act .q-cost{justify-content:center}}
 .q-recap__row{grid-template-columns:auto 1fr}.q-recap__row .q-price{grid-column:1/-1;justify-self:end;margin-top:-4px}
+/* Badge card (handoff 2026-10-25): emblem above, exact title below, one shared frame and type scale for all four tiers */
+.q-badgecard{--badge-accent:#087f73;--badge-tint:#edf9f5;margin:0;min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px 10px;border:1px solid color-mix(in srgb,var(--badge-accent) 24%,#fff);border-radius:22px;background:linear-gradient(180deg,var(--badge-tint),#fff 74%);box-shadow:0 5px 16px #15162c0d,inset 0 0 0 3px #ffffffb3;color:var(--ink);text-align:center}
+.q-badgecard__art{width:min(100%,132px);aspect-ratio:1;display:grid;place-items:center;flex:none;border-radius:18px}
+.q-badgecard__art img{width:100%;height:100%;object-fit:contain;display:block}
+.q-badgecard__art.is-failed{background:color-mix(in srgb,var(--badge-accent) 10%,#fff);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--badge-accent) 25%,#fff)}
+.q-badgecard figcaption{width:100%;display:grid;gap:2px;justify-items:center;background:#fff;border-radius:14px;padding:6px 6px 5px}
+.q-badgecard figcaption b{font-size:15px;font-weight:800;line-height:1.6;min-height:1.6em;text-wrap:balance}
+.q-badgecard figcaption span{font-size:12px;color:var(--ink-2);line-height:1.6}
+.q-badgegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.q-badgegrid li{display:block}
+.q-record .q-record__badge{width:118px;flex:none;padding:8px 6px 6px;gap:4px}.q-record__badge .q-badgecard__art{width:72px}.q-record__badge figcaption{padding:4px}.q-record__badge figcaption b{font-size:12px;min-height:0}
+.q-cp__badge{width:min(230px,62vw);padding:16px 12px 12px}.q-cp__badge .q-badgecard__art{width:min(100%,170px)}.q-cp__badge figcaption b{font-size:19px}
+.q-loss__badge{width:132px;padding:8px 8px 6px;gap:4px}.q-loss__badge .q-badgecard__art{width:76px}.q-loss__badge figcaption{padding:4px}.q-loss__badge figcaption b{font-size:13px;min-height:0}
+@media(max-height:740px) and (max-width:899px){.q-badgegrid{gap:8px}.q-badgegrid .q-badgecard{padding:8px 8px 6px;gap:4px}.q-badgegrid .q-badgecard__art{width:min(100%,72px)}.q-badgegrid figcaption b{font-size:14px}
+ .q-record .q-record__badge{width:96px}.q-record__badge .q-badgecard__art{width:52px}.q-cp__badge{width:min(200px,56vw)}.q-cp__badge .q-badgecard__art{width:120px}.q-loss__badge{width:112px}.q-loss__badge .q-badgecard__art{width:54px}}
+@media(min-width:900px){.q-badgegrid{grid-template-columns:repeat(4,1fr);gap:18px}.q-badgegrid .q-badgecard__art{width:min(100%,150px)}.q-badgegrid figcaption b{font-size:17px}
+ .q-record .q-record__badge{width:150px}.q-record__badge .q-badgecard__art{width:104px}.q-record__badge figcaption b{font-size:14px}.q-cp__badge{width:min(280px,40dvh)}.q-cp__badge .q-badgecard__art{width:min(100%,32dvh)}.q-loss__badge{width:150px}.q-loss__badge .q-badgecard__art{width:96px}}
+/* icons on existing controls */
+.q-guidebtn{display:inline-flex;align-items:center;gap:6px}.q-guidebtn svg{flex:none}
+.q-daily h2{display:flex;align-items:center;justify-content:center;gap:8px}.q-daily__gift{color:var(--red);display:grid}
+.q-demo-pause{display:inline-flex;align-items:center;gap:6px}.q-share-actions a{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;padding-inline:12px}
+/* one short check pop after a confirmed correct answer (keyed per question); still under reduced motion */
+.q-pop-once{animation:q-pop-once .38s cubic-bezier(.3,.7,.2,1.4) 1}
+@keyframes q-pop-once{0%{transform:scale(.4)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.q-pop-once{animation:none}}
+/* the last comparison supports the result: compact prices, ordinary weight, the run score stays dominant */
+.q-recap__row .q-price b,.q-recap .q-price b{font-size:15px;font-weight:700}.q-recap__row .q-price small{font-size:12px}.q-recap h2{font-size:13px}
+@media(min-width:900px){.q-recap__row .q-price b,.q-recap .q-price b{font-size:16px}}

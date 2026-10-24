@@ -126,7 +126,8 @@ function feedback() {
   if (fb.kind === 'correct') {
     tm = V.timer({ mode: 'done' });
     card = V.cmpCard(fb.product, 'ok', fb.revealedPrice);
-    dec = V.decide('ok', fb.choice, V.verdict('ok', 'درست گفتی!', fb.equal ? 'قیمت‌ها برابر بود؛ هر دو جواب درسته' : `${truthW} بود`));
+    const pop = S.ui.popped !== fb.questionId; S.ui.popped = fb.questionId;   // the check pops once per confirmed question, not on re-renders
+    dec = V.decide('ok', fb.choice, V.verdict('ok', 'درست گفتی!', fb.equal ? 'قیمت‌ها برابر بود؛ هر دو جواب درسته' : `${truthW} بود`, pop));
   } else if (fb.kind === 'wrong') {
     tm = V.timer({ mode: 'done' });
     card = V.cmpCard(fb.product, 'no', fb.revealedPrice);
@@ -1017,6 +1018,10 @@ export function init(el) {
   root.addEventListener('click', onClick);
   // a product photo that fails (offline CDN, 404) becomes a neutral tile; the title, price and controls stay as they are
   root.addEventListener('error', e => { const im = e.target; if (im.tagName === 'IMG' && im.closest('.q-img')) { im.closest('.q-img').classList.add('q-img--none', 'is-failed'); im.remove(); } }, true);
+  // a badge image that fails leaves a quiet tile; its real title below stays (never an unexplained blank)
+  root.addEventListener('error', e => { const im = e.target; if (im.tagName === 'IMG' && im.closest('.q-badgecard__art')) { im.closest('.q-badgecard__art').classList.add('is-failed'); im.remove(); } }, true);
+  // the four small badge images are fetched right after start, so their first screen (onboarding, home, checkpoint) is ready
+  setTimeout(() => V.BADGES.forEach(id => { const im = new Image(); im.decoding = 'async'; im.src = V.BADGE_SRC(id); im.decode?.().catch(() => {}); }), 0);
   document.addEventListener('keydown', e => {
     const dialog = root.querySelector('[role="dialog"]');
     if (dialog && e.key === 'Escape') {   // safe dismissals only: exit sheet, daily reward, share preview (never a checkpoint or a payment)

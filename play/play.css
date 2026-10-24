@@ -1,6 +1,3 @@
-/* Play only. A plain browser is not the Super App WebView: on a wide screen the game keeps phone width, centred.
-   Reviewer layout (?review) comes from play/reviewer.css, copied from gheimat-shenas player/dev/reviewer.css. */
-@media (min-width: 600px) {
-  body.pe-play:not(.pe-dev) { background: #ECEEF2; }
-  body.pe-play:not(.pe-dev) #app { max-width: 430px; box-shadow: 0 0 0 1px #E3E5EA, 0 12px 40px rgba(35,37,43,.08); }
-}
+/* Play supports desktop and mobile natively. No phone-width frame on desktop. */
+body.pe-play{background:var(--bg)}
+body.pe-play #app,body.pe-play:not(.pe-dev) #app{max-width:1440px;width:100%;height:100dvh;margin-inline:auto;box-shadow:none;left:auto;right:auto;top:auto;border-radius:0}

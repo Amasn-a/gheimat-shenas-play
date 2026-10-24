@@ -4,6 +4,10 @@
 # the source revision. play/ (demo host, in-browser server, reviewer controls) belongs to Play and is not overwritten.
 # Usage (Git Bash): ./sync-from-gheimat-shenas.sh ../gheimat-shenas
 set -euo pipefail
+if [[ "${ALLOW_REPLACE_PLAY_REDESIGN:-}" != "yes" ]]; then
+  echo "Refusing to overwrite the Play-only redesign. Set ALLOW_REPLACE_PLAY_REDESIGN=yes only for an intentional full replacement." >&2
+  exit 1
+fi
 SRC="${1:?usage: ./sync-from-gheimat-shenas.sh /path/to/gheimat-shenas}"
 DST="$(cd "$(dirname "$0")" && pwd)"
 rm -rf "$DST/src" "$DST/styles" "$DST/fonts" "$DST/assets"

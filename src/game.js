@@ -9,8 +9,9 @@ import * as host from './host.js';
 import * as motion from './motion.js';
 import { DUR } from './durations.js';
 import * as V from './views.js';
+import { createShareCard, GAME_URL } from './share.js';
 import { DEMO_FIRST, DEMO_SECOND } from './demo.js';
-import { fa, untilInstant } from './fmt.js';
+import { fa, untilInstant, title } from './fmt.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -24,7 +25,7 @@ export const S = {
   fb: null,           // feedback { kind, choice, direction, revealedPrice, product, equal }
   offer: null, op: null,
   result: null, ended: null,
-  home: { runId: null, products: null, state: 'none', positioned: null, scroll: null },   // «کالاهای دست قبلی»
+  home: { runId: null, products: null, state: 'none', positioned: null, scroll: null, page: 0 },   // «کالاهای دست قبلی»
   ui: { toast: null, leave: false, cp: null, offline: !navigator.onLine, resuming: false, queued: null, morph: null,
         guardUntil: 0, codeState: null, afterContinue: false, noOffer: null, cpShown: new Set(), lossReason: null,
         onb: null, daily: null, slowSettle: false, offerOver: false, guideFrom: null, recordToast: null },
@@ -54,7 +55,7 @@ function screen() {
   const v = S.view;
   if (v === 'G00.SPLASH' || v === 'G00.ERROR') return V.vSplash(v === 'G00.ERROR');
   if (v.startsWith('G01.')) return homeScreen();
-  if (v === 'G02.GUIDE') return V.vGuide({ config: cfg() });
+  if (v === 'G02.GUIDE') return V.vGuide({ config: cfg(), demo: !S.ui.guideRules, step: S.ui.guideLesson?.step || 0, paused: S.ui.guideLesson?.paused || motion.reducedMotion() });
   if (v === 'G02.ONBOARDING') return onboardScreen();
   if (v === 'G03.LOADING') return loadingRun();
   if (['G03.READY', 'G03.PREPARING', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
@@ -69,7 +70,7 @@ function homeScreen() {
   return V.vHome(S.view, {
     boot: b, balance: S.balance, toast: S.ui.toast, offline: S.ui.offline,
     untilReset: untilInstant(clock.ms(b.quota.resetsAt) - clock.serverNow()),
-    productsOn: feat('products'), products: S.home.products, historyState: S.home.state,
+    historyPage: S.home.page, productsOn: feat('products'), products: S.home.products, historyState: S.home.state,
     modal: S.ui.daily && b.dailyReward ? V.dailyModal(b.dailyReward, S.ui.daily) : '',
   });
 }
@@ -138,13 +139,12 @@ function feedback() {
 /** G05/G06: the loss screen and every state of the continue of the same run (§11, §12). */
 function lossScreen() {
   const v = S.view, run = S.run, c = cfg(), cost = S.offer ? S.offer.cost : c.continueRule.cost;
-  const COST = remS => `<p class="q-cost">${V.COIN}<span>${fa(cost)} دیجی‌کوین</span>${remS != null ? `<span class="q-cost__t" aria-hidden="true">· <b data-offer-left>${fa(remS)}</b> ثانیه</span>` : ''}</p>`;
-  const remS = S.offer ? Math.max(0, Math.ceil((clock.ms(S.offer.deadline) - clock.serverNow()) / 1000)) : null;
-  const GO = V.PRIMARY('ادامه', ' data-act="continue"', V.ICO('fwd', 22));
+  const COST = () => `<p class="q-cost">${V.COIN}<span>${fa(cost)} دیجی‌کوین برای ادامهٔ همین دست</span></p>`;
+  const GO = V.PRIMARY('ادامه همین دست', ' data-act="continue"', V.ICO('fwd', 22));
   let action = '', homeLocked = false;
   if (v === 'G05.LOADING') { action = V.BUSY('ادامه') + COST(null); homeLocked = true; }
   else if (v === 'G05.OFFER' && S.ui.offerOver) action = V.status('', 'زمان ادامه تموم شد؛ در حال ثبت پایان دست…', null, true);
-  else if (v === 'G05.OFFER') action = GO + COST(remS);
+  else if (v === 'G05.OFFER') action = GO + COST();
   else if (v === 'G05.NO_FUNDS') {
     action = `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>ادامه</span><i class="q-btn__i">${V.ICO('fwd', 22)}</i></button>` +
       V.status('warn', `برای ادامه ${fa(cost)} دیجی‌کوین لازمه${S.balance != null ? `؛ موجودیت ${fa(S.balance)} دیجی‌کوینه` : ''}.`, 'info');
@@ -152,7 +152,7 @@ function lossScreen() {
   else if (v === 'G06.UNKNOWN') {
     action = V.status('warn', 'نتیجه پرداخت هنوز مشخص نیست. هیچ مبلغی دوباره کسر نمی‌شه؛ اگه ادامه ممکن نشه، هزینه برمی‌گرده.', null, true) +
       V.SECONDARY('بررسی دوباره', ' data-act="recheck"', V.ICO('refresh')); homeLocked = true;
-  } else if (v === 'G06.FAILED_RETRY') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز فرصت داری دوباره امتحان کنی.', 'alert', false, true) + GO + COST(remS);
+  } else if (v === 'G06.FAILED_RETRY') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز فرصت داری دوباره امتحان کنی.', 'alert', false, true) + GO + COST();
   else if (v === 'G06.FAILED_END') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد؛ ادامه انجام نشد.', 'alert', false, true);
   else if (v === 'G06.REFUNDED') action = V.status('ok', `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.`, 'check');
   else if (v === 'G06.FAILED_END.UNCONFIRMED') action = V.status('no', 'پرداخت به‌موقع تأیید نشد و ادامه انجام نشد؛ اگه مبلغی کسر شده باشه، خودکار برمی‌گرده.', 'alert');
@@ -160,57 +160,29 @@ function lossScreen() {
   const best = Math.max(S.result ? S.result.record : 0, (S.boot && S.boot.record) || 0, run ? run.score : 0);
   const cp = run ? run.highestCheckpoint : null;
   const R = S.result, code = R && R.campaignCode && R.campaignCode.status !== 'sold_out' ? V.codeCard(R.campaignCode, S.ui.codeState === 'copied') : '';
-  return V.vLoss({ reason: S.ui.lossReason, score: run ? run.score : 0, best, cp, cpIndex: cp ? cpIndex(cp) : 0, action, homeLocked, code, toast: S.ui.toast });
+  const recap = S.fb && S.ref ? `<section class="q-recap" aria-label="آخرین مقایسه"><span>آخرین مقایسه</span><b>${V.DIRW[V.dirOf(S.fb.direction)]} بود</b><p>${title(S.fb.product?.displayTitle || '')}</p>${V.price(S.fb.revealedPrice)}</section>` : '';
+  return V.vLoss({ balance: S.balance, shareable: feat('share'), recap, reason: S.ui.lossReason, score: run ? run.score : 0, best, cp, cpIndex: cp ? cpIndex(cp) : 0, action, homeLocked, code, toast: S.ui.toast });
 }
 
 // ------------------------------------------------------------------------------------------------ onboarding (§14)
-const SPOT = [
-  { target: 'first', title: 'اسم و قیمت این کالا رو ببین', text: 'قیمت کالای اول، راهنمای توئه.' },
-  { target: 'second,answers', title: 'حدس بزن این یکی گرون‌تره یا ارزون‌تر', text: 'یکی از این دو تا دکمه رو انتخاب می‌کنی.' },
-  { target: 'timer', title: 'برای هر مقایسه ۱۰ ثانیه وقت داری', text: 'قبل از صفر جوابت رو انتخاب کن.' },
-];
+const SPOT = Array(5).fill(null);
 function onboardScreen() {
-  const o = S.ui.onb, c = cfg();
-  if (o.page === 2) return V.vOnboard2({ config: c, busy: o.busy, error: o.error });
-  const scene = V.game(V.gameTop(0, true), V.track(0, c.checkpoints), V.timer({ mode: 'run', t: fa(Math.round(c.inputMs / 1000)), p: 1 }),
-    V.refCard(DEMO_FIRST, true) + V.cmpCard(DEMO_SECOND, 'hidden', 0), V.decide('off', null, V.prompt(V.Q_PROMPT)), '', null);
-  return V.vOnboard1({ busy: o.busy, error: o.error }, scene, o.step, SPOT, motion.reducedMotion());
+  const o = S.ui.onb;
+  if (o.page === 2) return V.vOnboard2({ config: cfg(), busy: o.busy, error: o.error });
+  return V.vOnboard1({ busy: o.busy, error: o.error, paused: o.paused }, '', o.step, SPOT, motion.reducedMotion());
 }
 let spotTimer = 0;
+const lesson = () => S.view === 'G02.ONBOARDING' ? S.ui.onb : S.view === 'G02.GUIDE' ? (S.ui.guideLesson ||= {step:0,paused:motion.reducedMotion()}) : null;
 function afterOnboardRender() {
-  positionSpot();
-  requestAnimationFrame(positionSpot);
   clearTimeout(spotTimer);
-  const o = S.ui.onb;
-  if (o && o.page === 1 && !motion.reducedMotion()) {          // each emphasis about 2.6 s, then the loop starts again
-    const g = S.gen;
-    spotTimer = setTimeout(() => { if (g === S.gen && S.ui.onb === o && S.view === 'G02.ONBOARDING' && o.page === 1) { o.step = (o.step + 1) % SPOT.length; render(); } }, 2600);
-  }
-}
-/** The hole follows the real size of the demo elements; its box-shadow dims everything else (smooth CSS move, no flash). */
-function positionSpot() {
-  const o = S.ui.onb; if (!o || o.page !== 1) return;
-  const ov = root.querySelector('.q-onb--1'); if (!ov) return;
-  const sc = ov.querySelector('.q-onb__scene'), pg = sc && sc.firstElementChild, NEED = 700;
-  if (pg && sc.clientHeight < NEED) {                          // a short screen sees the whole sandbox, scaled, never squeezed
-    const k = sc.clientHeight / NEED;
-    Object.assign(pg.style, { height: NEED + 'px', width: (sc.clientWidth / k) + 'px', bottom: 'auto', left: 'auto', transform: `scale(${k})`, transformOrigin: 'top right' });
-  }
-  const R = ov.getBoundingClientRect(), hole = ov.querySelector('[data-hole]'), tip = ov.querySelector('[data-tip]');
-  const els = SPOT[o.step].target.split(',').map(k => ov.querySelector(`.q-onb__scene [data-tour="${k}"]`)).filter(Boolean);
-  if (!els.length || !hole) return;
-  const rs = els.map(e => e.getBoundingClientRect()), pad = 8;
-  const x = Math.max(4, Math.min(...rs.map(r => r.left)) - R.left - pad), y = Math.max(4, Math.min(...rs.map(r => r.top)) - R.top - pad);
-  const x2 = Math.min(R.width - 4, Math.max(...rs.map(r => r.right)) - R.left + pad), y2 = Math.max(...rs.map(r => r.bottom)) - R.top + pad;
-  Object.assign(hole.style, { left: x + 'px', top: y + 'px', width: (x2 - x) + 'px', height: (y2 - y) + 'px' });
-  if (!tip) return;
-  const panel = ov.querySelector('.q-onb__panel'), limit = panel ? panel.getBoundingClientRect().top - R.top - 12 : R.height - 12;
-  const th = tip.offsetHeight, below = y2 + 14, above = y - 14 - th;
-  tip.style.top = (below + th <= limit ? below : above >= 12 ? above : Math.max(12, limit - th)) + 'px';
+  const o = lesson();
+  if (!o || o.page === 2 || S.ui.guideRules && S.view === 'G02.GUIDE' || o.paused || motion.reducedMotion()) return;
+  const g = S.gen;
+  spotTimer = setTimeout(() => { if (g === S.gen && lesson() === o) { o.step = (o.step + 1) % 5; render(); } }, o.step === 3 ? 6000 : 4500);
 }
 function startOnboarding() {
   S.ui.daily = null;
-  S.ui.onb = { page: 1, step: 0, busy: false, error: null };
+  S.ui.onb = { page: 1, step: 0, paused: motion.reducedMotion(), busy: false, error: null };
   host.setBackHandler(() => { const o = S.ui.onb; if (!o) return false; if (o.page === 2 && !o.busy) { o.page = 1; o.error = null; render(); } return true; });
   go('G02.ONBOARDING');
 }
@@ -242,12 +214,20 @@ export function render() {
   const hs = root.querySelector('[data-hscroll]');
   if (hs && S.home.positioned) S.home.scroll = hs.scrollLeft;   // a re-render never resets the player's own scrolling
   motion.end();
+  const active = document.activeElement?.closest('[data-act]');
+  const focusAct = active?.dataset.act, focusStep = active?.dataset.step;
   screenEl.innerHTML = screen();
+  if (S.ui.share) { screenEl.querySelector('.q-page')?.setAttribute('inert',''); screenEl.insertAdjacentHTML('beforeend',V.shareModal(S.ui.share)); }
+  const same = focusAct && [...screenEl.querySelectorAll('[data-act]')].find(e=>e.dataset.act===focusAct && e.dataset.step===focusStep && !e.disabled);
+  if (same) same.focus({preventScroll:true});
+  const dialog = root.querySelector('[role="dialog"]');
+  if (dialog && !dialog.contains(document.activeElement)) requestAnimationFrame(()=>dialog.querySelector('button:not([disabled])')?.focus({preventScroll:true}));
   root.dataset.view = stateId();
   wireImages();
   if (before) motion.morph(root, before, ms, () => { const q = S.ui.queued; S.ui.queued = null; if (q === 'reveal') setTimeout(reveal, 0); });
   if (root.querySelector('[data-countdown],[data-offer-left]')) tickLoop();
-  if (S.view === 'G02.ONBOARDING') afterOnboardRender();
+  clearTimeout(spotTimer);
+  if (S.view === 'G02.ONBOARDING' || S.view === 'G02.GUIDE') afterOnboardRender();
   if (S.view.startsWith('G01.')) afterHomeRender();
 }
 
@@ -353,7 +333,7 @@ async function loadHistory(runId) {
   if (!feat('products')) return;
   if (!runId) { Object.assign(S.home, { runId: null, products: null, state: 'none' }); return; }
   if (S.home.runId === runId && S.home.state === 'ready') return;
-  Object.assign(S.home, { runId, products: null, state: 'loading', positioned: null, scroll: null });
+  Object.assign(S.home, { runId, products: null, state: 'loading', positioned: null, scroll: null, page: 0 });
   try {
     const list = await api.products(runId);
     if (S.home.runId !== runId) return;
@@ -707,7 +687,7 @@ async function activateOffer() {
  */
 export async function continueOffer() {
   if (!S.offer || S.op || S.ui.offline || S.ui.offerOver) return;
-  if (clock.serverNow() >= clock.ms(S.offer.deadline)) return offerTimeUp();
+  if (S.offer.deadline && clock.serverNow() >= clock.ms(S.offer.deadline)) return offerTimeUp();
   const offerId = S.offer.offerId;
   S.op = { key: S.keys['continue:' + offerId] ||= newKey(), status: 'pending', since: now(), operationId: null };
   go('G06.PENDING');
@@ -742,7 +722,7 @@ function onOperation(opv, fromPoll = false) {
   if (opv.status === 'failed') {
     delete S.keys['continue:' + (S.offer && S.offer.offerId)];  // a retry after a rejected debit is a new request, not a replay
     S.op = null;
-    if (S.offer && clock.serverNow() < clock.ms(S.offer.deadline) && opv.run.state === 'OFFER_OPEN') { go('G06.FAILED_RETRY'); return tickLoop(); }
+    if (S.offer && (!S.offer.deadline || clock.serverNow() < clock.ms(S.offer.deadline)) && opv.run.state === 'OFFER_OPEN') { go('G06.FAILED_RETRY'); return tickLoop(); }
     go('G06.FAILED_END');
     if (opv.run.state !== 'FINISHED') later(1000, reconcileRun);
     return;
@@ -773,7 +753,7 @@ async function pollOperation() {   // 1 s backing off to 5 s; G06.UNKNOWN (with 
 /** The purchase response was lost: the same request (same key) is sent again while it could still arrive in time. */
 async function resendPurchase(g) {
   const op = S.op, offer = S.offer;
-  if (!op || !offer || clock.serverNow() > clock.ms(offer.acceptDeadline || offer.deadline)) return reconcileRun();
+  if (!op || !offer || (offer.acceptDeadline || offer.deadline) && clock.serverNow() > clock.ms(offer.acceptDeadline || offer.deadline)) return reconcileRun();
   try { const opv = await api.continueOffer(offer.offerId, op.key); if (g === S.gen && S.op === op) onOperation(opv, true); }
   catch (e) {
     if (g !== S.gen || S.op !== op) return;
@@ -923,7 +903,7 @@ function tickLoop() {
       if (root.dataset.view !== stateId()) root.dataset.view = stateId();
       raf = requestAnimationFrame(step); return;
     }
-    if (['G05.OFFER', 'G06.FAILED_RETRY'].includes(v) && S.offer) {
+    if (['G05.OFFER', 'G06.FAILED_RETRY'].includes(v) && S.offer?.deadline) {
       const rem = Math.max(0, clock.ms(S.offer.deadline) - clock.serverNow()), el = $('[data-offer-left]', root);
       if (el) { const s = fa(Math.ceil(rem / 1000)); if (el.textContent !== s) el.textContent = s; }
       if (rem <= 0) {
@@ -1020,24 +1000,44 @@ export function init(el) {
     if (S.run && inRun(S.view) && !S.ui.cp && !['G03.CORRECT_FEEDBACK', 'G03.WRONG_FEEDBACK', 'G03.TIMEOUT'].includes(S.view)) reconcileRun();
   });
   root.addEventListener('click', onClick);
+  // a product photo that fails (offline CDN, 404) becomes a neutral tile; the title, price and controls stay as they are
+  root.addEventListener('error', e => { const im = e.target; if (im.tagName === 'IMG' && im.closest('.q-img')) { im.closest('.q-img').classList.add('q-img--none', 'is-failed'); im.remove(); } }, true);
+  document.addEventListener('keydown', e => {
+    const dialog = root.querySelector('[role="dialog"]');
+    if (dialog && e.key === 'Escape') {   // safe dismissals only: exit sheet, daily reward, share preview (never a checkpoint or a payment)
+      const x = dialog.querySelector('[data-act="leave-no"]:not([disabled]),[data-act="daily-close"]:not([disabled]),[data-act="share-close"]:not([disabled])');
+      if (x) { e.preventDefault(); x.click(); }
+      return;
+    }
+    if (!dialog || e.key !== 'Tab') return;
+    const focusable = [...dialog.querySelectorAll('button:not([disabled]),a[href],[tabindex="0"]')].filter(x=>x.getClientRects().length);
+    if (!focusable.length) {e.preventDefault();return;}
+    const i = focusable.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); focusable.at(-1).focus(); }
+    else if (!e.shiftKey && (i === -1 || i === focusable.length-1)) { e.preventDefault(); focusable[0].focus(); }
+  });
   boot();
 }
 
+/** Focus returns to the control that opened a dismissed dialog (or the screen's main action). */
+const refocus = sel => requestAnimationFrame(() => { const t = root.querySelector(sel); if (t && !t.disabled) t.focus({ preventScroll: true }); });
 function onClick(e) {
   const el = e.target.closest('[data-act]'); if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
   const a = el.dataset.act;
   const acts = {
     boot, home: boot, start: startRun, reveal, continue: continueOffer, 'ans-higher': () => answer('higher'), 'ans-lower': () => answer('lower'),
-    guide: openGuide, 'guide-close': closeGuide,
+    'guide-demo': () => { S.ui.guideRules = false; S.ui.guideLesson = {step:0,paused:motion.reducedMotion()}; render(); },
+    'guide-rules': () => { S.ui.guideRules = true; render(); },
+    guide: () => { S.ui.guideRules = false; S.ui.guideLesson = {step:0,paused:motion.reducedMotion()}; openGuide(); }, 'guide-close': closeGuide,
     'onb-next': () => { const o = S.ui.onb; if (o && !o.busy) { o.page = 2; o.error = null; go('G02.ONBOARDING'); } },
     'onb-prev': () => { const o = S.ui.onb; if (o && !o.busy) { o.page = 1; o.error = null; go('G02.ONBOARDING'); } },
     'onb-skip': finishOnboarding, 'onb-done': finishOnboarding,
     'spot-next': () => { const o = S.ui.onb; if (o && o.step < SPOT.length - 1) { o.step++; render(); } },
     'spot-prev': () => { const o = S.ui.onb; if (o && o.step > 0) { o.step--; render(); } },
-    'daily-claim': claimDaily, 'daily-check': checkDaily, 'daily-close': () => { S.ui.daily = null; render(); },
+    'daily-claim': claimDaily, 'daily-check': checkDaily, 'daily-close': () => { S.ui.daily = null; render(); refocus('[data-act="start"],[data-act="guide"]'); },
     resume: () => resume(S.boot.activeRun.runId),
     back: () => onBack(),
-    'leave-no': () => { S.ui.leave = false; render(); },
+    'leave-no': () => { S.ui.leave = false; render(); refocus('[data-act="back"]'); },
     'leave-yes': leaveConfirmed,
     'loss-home': lossHome,
     'cp-go': closeCp,
@@ -1045,8 +1045,27 @@ function onClick(e) {
     'recheck-answer': () => { if (S.q) readSettlement(S.q, S.gen); },
     'history-retry': () => { const id = S.home.runId; S.home.runId = null; S.home.state = 'loading'; render(); loadHistory(id); },
     'open-product': () => openProduct(el.dataset.link),
+    'history-prev': () => { S.home.page = Math.max(0,(S.home.page || 0)-1); render(); },
+    'history-next': () => { S.home.page = Math.min(Math.ceil((S.home.products?.items.length || 0)/2)-1,(S.home.page || 0)+1); render(); },
+    'demo-step': () => { const o=lesson(); if(o){o.step=Number(el.dataset.step);o.paused=true;render();} },
+    'demo-toggle': () => {const o=lesson();if(o){o.paused=!o.paused;render();}},
+    'demo-replay': () => {const o=lesson();if(o){o.step=0;o.paused=motion.reducedMotion();render();}},
+    'share-result': shareResult,
+    'share-close': () => {if(S.ui.share?.url)URL.revokeObjectURL(S.ui.share.url);S.ui.share=null;render();refocus('[data-act="share-result"]');},
+    'share-send': async () => {if(S.ui.share?.blob){const result=await host.share(S.ui.share.blob,`رکورد من در قیمت‌شناس: ${fa(S.run?.score || 0)} جواب درست\n${GAME_URL}`);if(result==='unsupported'){toast('اشتراک‌گذاری در این مرورگر در دسترس نیست؛ تصویر رو ذخیره کن.',true);render();}}},
     copy: copyCode,
     'exit-app': () => host.close(),
   };
   if (acts[a]) acts[a]();
+}
+
+async function shareResult() {
+  if (!S.run || S.ui.share?.busy) return;
+  const run = S.run, cp = run.highestCheckpoint;
+  S.ui.share = {busy:true}; render();
+  try {
+    const blob = await createShareCard({score:run.score,title:cp?.title || '',badgeAssetId:cp?.badgeAssetId});
+    if (S.run !== run || !S.ui.share) return;
+    S.ui.share = {blob,url:URL.createObjectURL(blob)}; render();
+  } catch(e) {S.ui.share=null;toast('تصویر آماده نشد؛ دوباره امتحان کن.',true);render();}
 }

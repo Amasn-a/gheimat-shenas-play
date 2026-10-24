@@ -1,7 +1,7 @@
 // Play demo backend. GitHub Pages serves static files only, so this page answers the player's API calls itself: an
 // in-browser port of the gheimat-shenas backend (application/service/*, domain/*) at the revision named in index.html.
-// Same routes, JSON shapes, error codes and rules: question 10 s visible / 12.5 s arrival deadline, extra life 10 s /
-// 15 s, admitted operations finish after the deadline (resolve_by = arrival deadline + 60 s), receipt-first admission,
+// Play-only timing: question 10 s visible / 12.5 s arrival deadline; continue decisions are untimed.
+// Admitted payments resolve within 60 s from admission. Receipt-first admission,
 // R-41 bands with look-ahead (starts aligned to 5/10/15/20), each checkpoint paid once when crossed (0/1/3/5), record
 // reward (1 for matching a record above 20, once per run), continue 5, daily reward claim, 3 plays a day (Asia/Tehran).
 // DEMO ONLY: one account per browser (localStorage), DigiCoin SIMULATED in this page (start balance 120). Nothing is
@@ -14,7 +14,7 @@ const STORE = 'pe.play.state.v1';
 // LaunchConfig.value() of gheimat-shenas (R-20, R-33, R-41, R-47, brief 2026-10-20, redesign 2026-10-21)
 const CFG = {
   configVersion: 1, catalogVersion: 1, playsPerDay: 3,
-  inputMs: 10_000, acceptMs: 12_500, offerMs: 10_000, offerAcceptMs: 15_000, paymentResolutionMs: 60_000,
+  inputMs: 10_000, acceptMs: 12_500, offerMs: null, offerAcceptMs: null, paymentResolutionMs: 60_000,
   inactivityMs: 180_000, offerActivationMs: 180_000, timeoutGraceMs: 1_000, checkpointAutoContinueMs: 5_000,
   checkpoints: [
     { id: 'cp_5', requiredCorrect: 5, title: 'بازاری تازه‌کار', badgeAssetId: 'badge_5', reward: 0, percent: 50 },
@@ -212,8 +212,8 @@ const runConfig = () => ({
   offerAcceptMs: CFG.offerAcceptMs, checkpointAutoContinueMs: CFG.checkpointAutoContinueMs, checkpoints: CFG.checkpoints.map(cpView),
   continueRule: { ...CFG.continueRule }, features: { ...CFG.features }, payOnCrossing: true, recordReward: CFG.recordReward, recordRewardAbove: CFG.recordRewardAbove,
 });
-const resolveBy = o => o.acceptDeadline + CFG.paymentResolutionMs;
-const admits = (o, t) => t <= o.acceptDeadline;
+const resolveBy = o => (o.paymentStartedAt ?? o.acceptDeadline ?? clockNow) + CFG.paymentResolutionMs;
+const admits = (o, t) => o.acceptDeadline == null || t <= o.acceptDeadline;
 const offerView = o => ({ offerId: o.offerId, state: o.state, openedAt: iso(o.openedAt), deadline: iso(o.deadline), acceptDeadline: iso(o.acceptDeadline), resolveBy: iso(resolveBy(o)), cost: o.cost });
 const questionsOf = run => run.questionIds.map(id => S.qs[id]).sort((a, b) => a.seq - b.seq);
 const openQuestion = run => questionsOf(run).find(q => q.state === 'OPEN') || null;
@@ -331,7 +331,7 @@ function applyDue(run) {
     case 'OFFER_OPEN': {
       const o = latestOffer(run);
       if (!S.gameOn) { finish(run, 'game_off', now); return true; }
-      if (now >= o.acceptDeadline + CFG.timeoutGraceMs) {   // a purchase that ARRIVED in time is admitted, not expired
+      if (o.acceptDeadline != null && now >= o.acceptDeadline + CFG.timeoutGraceMs) {   // a purchase that ARRIVED in time is admitted, not expired
         if (o.state === 'OPEN' && o.purchaseReceivedAt != null && admits(o, o.purchaseReceivedAt) && run.continuesUsed < CFG.continueRule.cap) admitPurchase(run, o, now);
         else finish(run, 'expired', o.acceptDeadline);
         return true;
@@ -350,7 +350,7 @@ function admitPurchase(run, offer, now) {
   const op = { operationId: newId(), runId: run.runId, offerId: offer.offerId, type: 'CHARGE', amount: offer.cost, heldAmount: 0, status: 'PENDING',
     capDay: null, createdAt: now, claimedAt: null, nextAttemptAt: now, giveUpAt: now + GIVE_UP, attempts: 0, relatedOperationId: null };
   S.ops[op.operationId] = op;
-  Object.assign(offer, { state: 'PAYMENT_PENDING', operationId: op.operationId, purchaseReceivedAt: null });
+  Object.assign(offer, { paymentStartedAt: now, state: 'PAYMENT_PENDING', operationId: op.operationId, purchaseReceivedAt: null });
   Object.assign(run, { state: 'PAYMENT_PENDING', nextDeadlineAt: resolveBy(offer) });
   return op.operationId;
 }
@@ -431,7 +431,7 @@ function applyChargeOutcome(op, outcome) {
     if (offer.state === 'PAYMENT_PENDING' && run.state === 'PAYMENT_PENDING') {
       if (admits(offer, now)) {   // known rejection: the same offer stays actionable while a purchase can still be admitted
         Object.assign(offer, { state: 'OPEN', operationId: null });
-        Object.assign(run, { state: 'OFFER_OPEN', nextDeadlineAt: offer.acceptDeadline + CFG.timeoutGraceMs });
+        Object.assign(run, { state: 'OFFER_OPEN', nextDeadlineAt: offer.acceptDeadline == null ? null : offer.acceptDeadline + CFG.timeoutGraceMs });
       } else finish(run, 'continue_failed', now);
     }
   } else Object.assign(op, { status: 'UNKNOWN', nextAttemptAt: now + backoff(op.attempts) });   // reconcile by status query
@@ -522,7 +522,7 @@ function answer(questionId, choice, device, receivedAt) {
   const peek = S.qs[questionId]; if (!peek) throw notFound();
   const owner = S.runs[peek.runId];
   // receipt first: recorded on arrival when the question is open, on time and asked from the run's device
-  if (peek.state === 'OPEN' && peek.receivedAt == null && receivedAt <= peek.acceptDeadline && owner.deviceId === device && owner.state === 'QUESTION_OPEN')
+  if (peek.state === 'OPEN' && peek.receivedAt == null && admits(peek, receivedAt) && owner.deviceId === device && owner.state === 'QUESTION_OPEN')
     Object.assign(peek, { choice, receivedAt });
   const run = lockForCommand(peek.runId), q = S.qs[questionId];
   if (q.state === 'CORRECT' || q.state === 'WRONG') return answerView(q, run, device);   // first committed answer wins; replays get it
@@ -561,17 +561,17 @@ function activateOffer(runId, device) {
   // R-50: coins earned in this run (already in the wallet since the redesign) cannot fund its continue
   const earned = runRewards(run).filter(o => o.status === 'SUCCEEDED' || o.status === 'UNKNOWN').reduce((t, o) => t + o.amount, 0);
   if (balance == null || balance - earned < cost) { finishAfterMiss(run, 'no_funds', now); return view(balance, null); }
-  const o = { offerId: newId(), runId: run.runId, questionId: run.missQuestionId, state: 'OPEN', cost, openedAt: now, deadline: now + CFG.offerMs,
-    acceptDeadline: now + CFG.offerAcceptMs, purchaseReceivedAt: null, operationId: null, closedAt: null };
+  const o = { offerId: newId(), runId: run.runId, questionId: run.missQuestionId, state: 'OPEN', cost, openedAt: now, deadline: CFG.offerMs == null ? null : now + CFG.offerMs,
+    acceptDeadline: CFG.offerAcceptMs == null ? null : now + CFG.offerAcceptMs, purchaseReceivedAt: null, operationId: null, closedAt: null };
   S.offers[o.offerId] = o; run.offerIds.push(o.offerId);
-  Object.assign(run, { state: 'OFFER_OPEN', nextDeadlineAt: o.acceptDeadline + CFG.timeoutGraceMs });
+  Object.assign(run, { state: 'OFFER_OPEN', nextDeadlineAt: o.acceptDeadline == null ? null : o.acceptDeadline + CFG.timeoutGraceMs });
   return view(balance, o);
 }
 
 function continueOffer(offerId, device, receivedAt) {
   const peek = S.offers[offerId]; if (!peek) throw notFound();
   const owner = S.runs[peek.runId];
-  if (peek.state === 'OPEN' && peek.purchaseReceivedAt == null && receivedAt <= peek.acceptDeadline && owner.deviceId === device && owner.state === 'OFFER_OPEN')
+  if (peek.state === 'OPEN' && peek.purchaseReceivedAt == null && admits(peek, receivedAt) && owner.deviceId === device && owner.state === 'OFFER_OPEN')
     peek.purchaseReceivedAt = receivedAt;   // receipt first, like answers
   const run = lockForCommand(peek.runId), offer = S.offers[offerId];
   let opId;
@@ -665,7 +665,7 @@ function share(runId, device) {
   const run = lockForCommand(runId);
   if (run.state !== 'FINISHED') throw stateError('RUN_NOT_FINISHED', run, device);
   const cp = run.finishReason === 'blocked' ? null : cpById(run.highestCheckpointId);
-  return { score: run.score, checkpointTitle: cp ? cp.title : null, badgeAssetId: cp ? cp.badgeAssetId : null, gameName: 'قیمت‌شناس', deepLink: null };
+  return { score: run.score, checkpointTitle: cp ? cp.title : null, badgeAssetId: cp ? cp.badgeAssetId : null, gameName: 'قیمت‌شناس', deepLink: 'https://amasn-a.github.io/gheimat-shenas-play/' };
 }
 
 function dailyView() {   // DailyRewardService.view

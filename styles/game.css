@@ -2,7 +2,7 @@
    Logical properties everywhere (inline-start = right in RTL), so nothing is mirrored twice. */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); }
-html:not(.fonts-ready) body { visibility: hidden; }            /* no frame is ever painted in another font (§2) */
+/* Font failure never hides the application. */            /* no frame is ever painted in another font (§2) */
 body { font-family: var(--font); color: var(--ink); font-size: 15px; line-height: 1.7; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }

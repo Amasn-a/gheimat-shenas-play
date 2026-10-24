@@ -1,4 +1,4 @@
-// Play entry (GitHub Pages). The game itself is the unchanged gheimat-shenas player (src/, styles/, fonts/). This file
+// Play entry (GitHub Pages). This Play-only redesign intentionally diverges from gheimat-shenas (src/, styles/, fonts/). This file
 // does what the Super App and the backend do in production: it configures the host adapter for a plain browser and
 // answers the player's API calls with the in-browser demo server (play/server.js). Reviewer controls: add ?review.
 import { configureHost } from '../src/host.js';
@@ -15,7 +15,7 @@ configureHost({
   share: async ({ blob, text }) => {             // the native share sheet where the browser has one, otherwise a download
     const file = new File([blob], 'qeymatshenas.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], text }); return 'sent'; } catch (e) { return 'cancelled'; }
+      try { await navigator.share({ files: [file], text }); return 'sent'; } catch (e) { if (e.name === 'AbortError') return 'cancelled'; /* fallback to image download below */ }
     }
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'qeymatshenas.png' });
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10_000);

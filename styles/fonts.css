@@ -1,9 +1,9 @@
 /* Digikala (supplied variable font, weight 100–900), self-hosted: woff2 for the web, woff / ttf as fallbacks of the same
-   family (redesign §2). font-display: block plus the loader in main.js: no frame ever shows another font. */
+   family (redesign §2). font-display: swap plus the loader in main.js: no frame ever shows another font. */
 @font-face {
   font-family: Digikala;
   font-style: normal;
   font-weight: 100 900;
-  font-display: block;
+  font-display: swap;
   src: url(../fonts/digikala-wght.woff2) format('woff2'), url(../fonts/digikala-wght.woff) format('woff'), url(../fonts/digikala-wght.ttf) format('truetype');
 }

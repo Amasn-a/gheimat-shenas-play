@@ -3,6 +3,7 @@
    its standard right-pointing shape. Nothing here is mirrored by CSS, so DOM order and drawing never flip twice. */
 const S = (d, w = 2) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
 export const I = {
+  share: S('<path d="M12 16V3M7 8l5-5 5 5M5 13v7h14v-7"/>'),
   back: S('<path d="M9 5l7 7-7 7"/>', 2.4),               // points right
   fwd: S('<path d="M15 5l-7 7 7 7"/>', 2.4),               // points left
   play: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>',

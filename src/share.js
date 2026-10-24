@@ -17,9 +17,10 @@ export async function createShareCard({score,title,badgeAssetId}) {
   c.font='500 30px Digikala,Tahoma';c.fillStyle='#cdd2f4';c.fillText('گرون‌تره یا ارزون‌تر؟',820,219);
   c.drawImage(hero,180,260,720,480);
   rounded(c,110,704,860,330,32,'#fffdf9');
-  c.textAlign='center';c.fillStyle='#565a70';c.font='600 32px Digikala,Tahoma';c.fillText('رکورد من',540,768);
+  // the run's own result (not the all-time record): the same meaning as the button and the preview title
+  c.textAlign='center';c.fillStyle='#565a70';c.font='600 32px Digikala,Tahoma';c.fillText('نتیجهٔ این دست',540,768);
   c.fillStyle='#15162c';c.font='800 142px Digikala,Tahoma';c.fillText(fa(score),540,912);
-  c.font='700 30px Digikala,Tahoma';c.fillText('جواب درست در یک دست',540,975);
+  c.font='700 30px Digikala,Tahoma';c.fillText('جواب درست دادم',540,975);
   if(title){
     rounded(c,260,1059,560,65,20,'#4055ed');c.fillStyle='#fff';c.font='800 31px Digikala,Tahoma';c.fillText(title,540,1103);
   }else{c.fillStyle='#cdd2f4';c.font='600 30px Digikala,Tahoma';c.fillText('تو چند تا قیمت رو درست حدس می‌زنی؟',540,1103);}

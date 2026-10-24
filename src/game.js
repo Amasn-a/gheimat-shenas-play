@@ -11,7 +11,7 @@ import { DUR } from './durations.js';
 import * as V from './views.js';
 import { createShareCard, GAME_URL } from './share.js';
 import { DEMO_FIRST, DEMO_SECOND } from './demo.js';
-import { fa, untilInstant, title } from './fmt.js';
+import { fa, untilInstant, title, esc } from './fmt.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -49,13 +49,14 @@ const isLoss = v => /^G05\.|^G06\./.test(v) && v !== 'G06.SUCCESS';
 const feat = k => { const f = cfg().features; return !f || f[k] !== false; };
 const haptic = kind => { if (feat('haptics')) host.haptic(kind); };
 const cpIndex = c => cfg().checkpoints.findIndex(x => x.checkpointId === c.checkpointId);
+const nextCp = score => cfg().checkpoints.find(x => x.requiredCorrect > score) || null;
 
 // ------------------------------------------------------------------------------------------------ rendering
 function screen() {
   const v = S.view;
   if (v === 'G00.SPLASH' || v === 'G00.ERROR') return V.vSplash(v === 'G00.ERROR');
   if (v.startsWith('G01.')) return homeScreen();
-  if (v === 'G02.GUIDE') return V.vGuide({ config: cfg(), demo: !S.ui.guideRules, step: S.ui.guideLesson?.step || 0, paused: S.ui.guideLesson?.paused || motion.reducedMotion() });
+  if (v === 'G02.GUIDE') return V.vGuide({ config: cfg(), demo: !S.ui.guideRules, step: S.ui.guideLesson?.step || 0, paused: S.ui.guideLesson?.paused !== false || motion.reducedMotion(), still: motion.reducedMotion() });
   if (v === 'G02.ONBOARDING') return onboardScreen();
   if (v === 'G03.LOADING') return loadingRun();
   if (['G03.READY', 'G03.PREPARING', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
@@ -93,7 +94,9 @@ function ready() {
   const v = S.view, off = S.ui.offline;
   const st = v === 'G03.PREPARING' ? 'busy' : v === 'G03.PREPARE_FAILED' ? 'failed' : off ? 'off' : 'on';
   const lead = connPill();                                    // after a continue the toast says so; no extra row that could push the button off
-  return V.game(top(), trk(), V.timer({ mode: 'idle' }), lead + V.refCard(S.ref, false) + V.revealCard(st),
+  const nx = nextCp(S.run.score);   // the next goal, in words, where there is room for it (not during the timed question)
+  const goal = nx ? `${fa(nx.requiredCorrect - S.run.score)} جواب درست تا «${esc(nx.title)}»${nx.rewardAmount > 0 ? ` و ${fa(nx.rewardAmount)} دیجی‌کوین` : ''}` : '';
+  return V.game(top(), trk(), V.timer({ mode: 'idle' }), lead + V.refCard(S.ref, false) + V.revealCard(st, goal),
     '<p class="q-hintline">قبل از نمایش، کالای اول رو ببین</p>', leave(), S.ui.toast);
 }
 
@@ -139,29 +142,40 @@ function feedback() {
 /** G05/G06: the loss screen and every state of the continue of the same run (§11, §12). */
 function lossScreen() {
   const v = S.view, run = S.run, c = cfg(), cost = S.offer ? S.offer.cost : c.continueRule.cost;
-  const COST = () => `<p class="q-cost">${V.COIN}<span>${fa(cost)} دیجی‌کوین برای ادامهٔ همین دست</span></p>`;
-  const GO = V.PRIMARY('ادامه همین دست', ' data-act="continue"', V.ICO('fwd', 22));
-  let action = '', homeLocked = false;
-  if (v === 'G05.LOADING') { action = V.BUSY('ادامه') + COST(null); homeLocked = true; }
-  else if (v === 'G05.OFFER' && S.ui.offerOver) action = V.status('', 'زمان ادامه تموم شد؛ در حال ثبت پایان دست…', null, true);
-  else if (v === 'G05.OFFER') action = GO + COST();
+  const BAL = S.balance != null ? `<p class="q-cost">${V.COIN}<span>موجودی تو: ${fa(S.balance)} دیجی‌کوین</span></p>` : '';
+  const GO = V.PRIMARY(`ادامه با ${fa(cost)} دیجی‌کوین`, ' data-act="continue"', V.COIN);
+  let action = '', homeLocked = false, final = false;
+  if (v === 'G05.LOADING') { action = V.BUSY('در حال آماده‌سازی ادامه…'); homeLocked = true; }
+  else if (v === 'G05.OFFER' && S.ui.offerOver) { action = V.status('', 'در حال ثبت پایان دست…', null, true); final = true; }
+  else if (v === 'G05.OFFER') action = GO + BAL;
   else if (v === 'G05.NO_FUNDS') {
-    action = `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>ادامه</span><i class="q-btn__i">${V.ICO('fwd', 22)}</i></button>` +
-      V.status('warn', `برای ادامه ${fa(cost)} دیجی‌کوین لازمه${S.balance != null ? `؛ موجودیت ${fa(S.balance)} دیجی‌کوینه` : ''}.`, 'info');
-  } else if (v === 'G06.PENDING') { action = V.BUSY('در حال بررسی پرداخت…') + COST(null); homeLocked = true; }
+    final = true;
+    action = V.status('warn', `برای ادامه ${fa(cost)} دیجی‌کوین لازمه${S.balance != null ? `؛ موجودیت ${fa(S.balance)} دیجی‌کوینه` : ''}. این دست همین‌جا تموم شد.`, 'info');
+  } else if (v === 'G06.PENDING') { action = V.BUSY('در حال بررسی پرداخت…') + V.status('', 'پرداخت فقط یک بار انجام می‌شه؛ چند لحظه صبر کن.', 'info'); homeLocked = true; }
   else if (v === 'G06.UNKNOWN') {
     action = V.status('warn', 'نتیجه پرداخت هنوز مشخص نیست. هیچ مبلغی دوباره کسر نمی‌شه؛ اگه ادامه ممکن نشه، هزینه برمی‌گرده.', null, true) +
       V.SECONDARY('بررسی دوباره', ' data-act="recheck"', V.ICO('refresh')); homeLocked = true;
-  } else if (v === 'G06.FAILED_RETRY') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز فرصت داری دوباره امتحان کنی.', 'alert', false, true) + GO + COST();
-  else if (v === 'G06.FAILED_END') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد؛ ادامه انجام نشد.', 'alert', false, true);
-  else if (v === 'G06.REFUNDED') action = V.status('ok', `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.`, 'check');
-  else if (v === 'G06.FAILED_END.UNCONFIRMED') action = V.status('no', 'پرداخت به‌موقع تأیید نشد و ادامه انجام نشد؛ اگه مبلغی کسر شده باشه، خودکار برمی‌گرده.', 'alert');
-  // G05.LOSS: the run is over without a continue (limit used, window over, skipped): only «صفحه اصلی»
+  } else if (v === 'G06.FAILED_RETRY') action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز می‌تونی دوباره امتحان کنی.', 'alert', false, true) + GO + BAL;
+  else if (v === 'G06.FAILED_END') { final = true; action = V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد؛ ادامه انجام نشد.', 'alert', false, true); }
+  else if (v === 'G06.REFUNDED') { final = true; action = V.status('ok', `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.`, 'check'); }
+  else if (v === 'G06.FAILED_END.UNCONFIRMED') { final = true; action = V.status('no', 'پرداخت به‌موقع تأیید نشد و ادامه انجام نشد؛ اگه مبلغی کسر شده باشه، خودکار برمی‌گرده.', 'alert'); }
+  else if (v === 'G05.LOSS') {   // over without a continue: the result, the reason when it is known, and «صفحه اصلی»
+    final = true;
+    if (S.ui.noOffer === 'limit_used') action = V.status('', 'ادامهٔ این دست رو قبلاً استفاده کردی.', 'info');
+  }
   const best = Math.max(S.result ? S.result.record : 0, (S.boot && S.boot.record) || 0, run ? run.score : 0);
-  const cp = run ? run.highestCheckpoint : null;
+  const cp = run ? run.highestCheckpoint : null, score = run ? run.score : 0;
   const R = S.result, code = R && R.campaignCode && R.campaignCode.status !== 'sold_out' ? V.codeCard(R.campaignCode, S.ui.codeState === 'copied') : '';
-  const recap = S.fb && S.ref ? `<section class="q-recap" aria-label="آخرین مقایسه"><span>آخرین مقایسه</span><b>${V.DIRW[V.dirOf(S.fb.direction)]} بود</b><p>${title(S.fb.product?.displayTitle || '')}</p>${V.price(S.fb.revealedPrice)}</section>` : '';
-  return V.vLoss({ balance: S.balance, shareable: feat('share'), recap, reason: S.ui.lossReason, score: run ? run.score : 0, best, cp, cpIndex: cp ? cpIndex(cp) : 0, action, homeLocked, code, toast: S.ui.toast });
+  return V.vLoss({ shareable: feat('share'), recap: recapHTML(), reason: S.ui.lossReason, score, best, cp, cpIndex: cp ? cpIndex(cp) : 0,
+    next: cp ? null : nextCp(score), final, action, homeLocked, code, toast: S.ui.toast });
+}
+/** The last comparison as supporting detail: both products, the true relation and the player's own choice (none on a timeout). */
+function recapHTML() {
+  const fb = S.fb; if (!fb || !fb.product) return '';
+  const truth = V.DIRW[V.dirOf(fb.direction)], mine = fb.kind === 'timeout' || !fb.choice ? 'جوابی ثبت نشد' : fb.choice === 'higher' ? 'گرون‌تره' : 'ارزون‌تره';
+  const ref = S.ref ? `<p class="q-recap__row"><span>کالای اول</span><b>${title(S.ref.displayTitle)}</b>${V.price(S.ref.price)}</p>` : '';
+  return `<section class="q-recap" aria-label="آخرین مقایسه"><h2>آخرین مقایسه</h2>${ref}<p class="q-recap__row"><span>کالای دوم</span><b>${title(fb.product.displayTitle)}</b>${V.price(fb.revealedPrice)}</p>` +
+    `<p class="q-recap__why">کالای دوم <b>${truth}</b> بود؛ انتخاب تو: <b>${mine}</b></p></section>`;
 }
 
 // ------------------------------------------------------------------------------------------------ onboarding (§14)
@@ -172,17 +186,18 @@ function onboardScreen() {
   return V.vOnboard1({ busy: o.busy, error: o.error, paused: o.paused }, '', o.step, SPOT, motion.reducedMotion());
 }
 let spotTimer = 0;
-const lesson = () => S.view === 'G02.ONBOARDING' ? S.ui.onb : S.view === 'G02.GUIDE' ? (S.ui.guideLesson ||= {step:0,paused:motion.reducedMotion()}) : null;
+const lesson = () => S.view === 'G02.ONBOARDING' ? S.ui.onb : S.view === 'G02.GUIDE' ? (S.ui.guideLesson ||= {step:0,paused:true}) : null;
 function afterOnboardRender() {
   clearTimeout(spotTimer);
   const o = lesson();
   if (!o || o.page === 2 || S.ui.guideRules && S.view === 'G02.GUIDE' || o.paused || motion.reducedMotion()) return;
   const g = S.gen;
-  spotTimer = setTimeout(() => { if (g === S.gen && lesson() === o) { o.step = (o.step + 1) % 5; render(); } }, o.step === 3 ? 6000 : 4500);
+  // explicit auto-play only (the player pressed «پخش خودکار»): one stage every 6 s, stopping on the last one
+  spotTimer = setTimeout(() => { if (g === S.gen && lesson() === o && !o.paused) { if (o.step < 4) o.step++; if (o.step === 4) o.paused = true; render(); } }, 6000);
 }
 function startOnboarding() {
   S.ui.daily = null;
-  S.ui.onb = { page: 1, step: 0, paused: motion.reducedMotion(), busy: false, error: null };
+  S.ui.onb = { page: 1, step: 0, paused: true, busy: false, error: null };   // manual: each stage stays until the player moves on
   host.setBackHandler(() => { const o = S.ui.onb; if (!o) return false; if (o.page === 2 && !o.busy) { o.page = 1; o.error = null; render(); } return true; });
   go('G02.ONBOARDING');
 }
@@ -840,7 +855,7 @@ function openCp(c, reward) {
   const token = ++cpToken;
   S.ui.cp = c; S.ui.cpDue = null; S.ui.cpAt = now();
   haptic('checkpoint');
-  cpEl.innerHTML = V.cpOverlay(c, cpIndex(c), reward);
+  cpEl.innerHTML = V.cpOverlay(c, cpIndex(c), reward, nextCp(c.requiredCorrect));
   screenEl.inert = true;
   root.dataset.view = stateId();
   cpTimers.push(later(DUR.cpGuardMs, () => { if (cpToken !== token) return; const b = $('.q-cp [data-act="cp-go"]', cpEl); if (b) b.focus({ preventScroll: true }); }));
@@ -1026,9 +1041,9 @@ function onClick(e) {
   const a = el.dataset.act;
   const acts = {
     boot, home: boot, start: startRun, reveal, continue: continueOffer, 'ans-higher': () => answer('higher'), 'ans-lower': () => answer('lower'),
-    'guide-demo': () => { S.ui.guideRules = false; S.ui.guideLesson = {step:0,paused:motion.reducedMotion()}; render(); },
+    'guide-demo': () => { S.ui.guideRules = false; S.ui.guideLesson = {step:0,paused:true}; render(); },
     'guide-rules': () => { S.ui.guideRules = true; render(); },
-    guide: () => { S.ui.guideRules = false; S.ui.guideLesson = {step:0,paused:motion.reducedMotion()}; openGuide(); }, 'guide-close': closeGuide,
+    guide: () => { S.ui.guideRules = false; S.ui.guideLesson = {step:0,paused:true}; openGuide(); }, 'guide-close': closeGuide,
     'onb-next': () => { const o = S.ui.onb; if (o && !o.busy) { o.page = 2; o.error = null; go('G02.ONBOARDING'); } },
     'onb-prev': () => { const o = S.ui.onb; if (o && !o.busy) { o.page = 1; o.error = null; go('G02.ONBOARDING'); } },
     'onb-skip': finishOnboarding, 'onb-done': finishOnboarding,
@@ -1048,11 +1063,13 @@ function onClick(e) {
     'history-prev': () => { S.home.page = Math.max(0,(S.home.page || 0)-1); render(); },
     'history-next': () => { S.home.page = Math.min(Math.ceil((S.home.products?.items.length || 0)/2)-1,(S.home.page || 0)+1); render(); },
     'demo-step': () => { const o=lesson(); if(o){o.step=Number(el.dataset.step);o.paused=true;render();} },
-    'demo-toggle': () => {const o=lesson();if(o){o.paused=!o.paused;render();}},
-    'demo-replay': () => {const o=lesson();if(o){o.step=0;o.paused=motion.reducedMotion();render();}},
+    'demo-toggle': () => {const o=lesson();if(o){o.paused=!o.paused;if(!o.paused&&o.step===4)o.step=0;render();}},
+    'demo-replay': () => {const o=lesson();if(o){o.step=0;o.paused=true;render();}},
+    'demo-prev': () => { const o=lesson(); if(o&&o.step>0){o.step--;o.paused=true;render();} },
+    'demo-next': () => { const o=lesson(); if(o&&o.step<4){o.step++;o.paused=true;render();} },
     'share-result': shareResult,
     'share-close': () => {if(S.ui.share?.url)URL.revokeObjectURL(S.ui.share.url);S.ui.share=null;render();refocus('[data-act="share-result"]');},
-    'share-send': async () => {if(S.ui.share?.blob){const result=await host.share(S.ui.share.blob,`رکورد من در قیمت‌شناس: ${fa(S.run?.score || 0)} جواب درست\n${GAME_URL}`);if(result==='unsupported'){toast('اشتراک‌گذاری در این مرورگر در دسترس نیست؛ تصویر رو ذخیره کن.',true);render();}}},
+    'share-send': async () => {if(S.ui.share?.blob){const result=await host.share(S.ui.share.blob,`نتیجهٔ من در قیمت‌شناس: این دست ${fa(S.run?.score || 0)} جواب درست دادم\n${GAME_URL}`);if(result==='unsupported'){toast('اشتراک‌گذاری در این مرورگر در دسترس نیست؛ تصویر رو ذخیره کن.',true);render();}}},
     copy: copyCode,
     'exit-app': () => host.close(),
   };

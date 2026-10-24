@@ -10,6 +10,12 @@ const HEADPHONES = '<svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="6
   '<rect x="14" y="62" width="22" height="34" rx="9" fill="#2F7FD6"/><rect x="84" y="62" width="22" height="34" rx="9" fill="#2F7FD6"/>' +
   '<rect x="20" y="68" width="10" height="22" rx="5" fill="#5AAEFF"/><rect x="90" y="68" width="10" height="22" rx="5" fill="#5AAEFF"/></svg>';
 
+const KETTLE = '<svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="104" rx="36" ry="6" fill="#E7E9EE"/>' +
+  '<path d="M30 92 38 40h44l8 52Z" fill="#14A37F"/><path d="M38 40h44l2 12H36Z" fill="#0E7F62"/><rect x="28" y="90" width="64" height="8" rx="4" fill="#1E2129"/>' +
+  '<path d="M82 52h8a12 12 0 0 1 0 24h-6" fill="none" stroke="#1E2129" stroke-width="7"/><path d="M38 44 24 34" stroke="#1E2129" stroke-width="7" stroke-linecap="round"/>' +
+  '<rect x="50" y="28" width="20" height="8" rx="4" fill="#1E2129"/><path d="M48 58v24" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>';
+export const DEMO_THIRD = { displayTitle: 'کتری برقی (نمونه راهنما)', imageUrl: 'demo:third', art: KETTLE };   // the next unknown item of stage 5
+
 export const DEMO_FIRST = { displayTitle: 'ماگ سرامیکی (نمونه راهنما)', imageUrl: 'demo:first', price: 245000, art: MUG };
 export const DEMO_SECOND = { displayTitle: 'هدفون بی‌سیم (نمونه راهنما)', imageUrl: 'demo:second', art: HEADPHONES };
 export const DEMO_SECOND_PRICE = 890000;   // dearer: «گرون‌تر» is the right answer in the demo

@@ -1,6 +1,6 @@
 // Exact text is painted with the local font; shared cards never depend on catalog images or cross-origin canvas data.
 import { fa } from './fmt.js';
-import { BADGES, BADGE_SRC, TIER } from './views.js';
+import { BADGES, BADGE_SRC } from './views.js';
 export const GAME_URL = 'https://amasn-a.github.io/gheimat-shenas-play/';
 const load = src => new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src;});
 const rounded = (c,x,y,w,h,r,fill)=>{c.fillStyle=fill;c.beginPath();c.roundRect(x,y,w,h,r);c.fill();};
@@ -24,11 +24,9 @@ export async function createShareCard({score,title,badgeAssetId}) {
   c.textAlign='center';c.fillStyle='#565a70';c.font='600 32px Digikala';c.fillText('نتیجهٔ این دست',sx,768);
   c.fillStyle='#15162c';c.font='800 142px Digikala';c.fillText(fa(score),sx,912);
   c.font='700 30px Digikala';c.fillText('جواب درست دادم',sx,975);
-  if(earned){   // the badge card: emblem above, the real title below, inside one frame (as in the game)
-    const [accent,tint]=TIER[Math.min(TIER.length-1,tier)];
-    rounded(c,640,704,330,376,32,tint);c.lineWidth=3;c.strokeStyle=accent;c.beginPath();c.roundRect(641.5,705.5,327,373,31);c.stroke();
-    if(mark)c.drawImage(mark,705,722,200,200);
-    rounded(c,662,944,286,112,22,'#ffffff');c.fillStyle='#15162c';let fs=32;do{c.font=`800 ${fs}px Digikala`;}while(c.measureText(title).width>254&&--fs>18);c.fillText(title,805,1012);
+  if(earned){   // badges-v3: the art carries its own title, so no frame or plate (as in the game); the title is drawn only if the art fails
+    if(mark)c.drawImage(mark,630,709,366,366);
+    else{c.fillStyle='#fff';let fs=40;do{c.font=`900 ${fs}px Digikala`;}while(c.measureText(title).width>320&&--fs>18);c.fillText(title,805,912);}
   }else if(!title){c.fillStyle='#cdd2f4';c.font='600 30px Digikala';c.fillText('تو چند تا قیمت رو درست حدس می‌زنی؟',540,1090);}
   else{rounded(c,260,1059,560,65,20,'#4055ed');c.fillStyle='#fff';c.font='800 31px Digikala';c.fillText(title,540,1103);}
   // shortcut: share-qr.png is a pre-made QR of GAME_URL; regenerate it if GAME_URL changes (the Super App build will use its own link)

@@ -13,18 +13,19 @@ const SPIN = '<span class="q-spin" aria-hidden="true"></span>';
 /** Official DigiCoin asset downloaded from Digikala's own static asset endpoint. */
 export const COIN = '<img class="q-coin" src="assets/digicoin-game.svg" width="24" height="23" alt="" aria-hidden="true">';
 export const TAG = '<img class="q-logomark" src="assets/game-logo.webp" width="40" height="56" alt="" aria-hidden="true">';
-// ?v=2: the 2026-10-25 artwork reuses the old file names, so a cached old badge is never mistaken for the new one
-export const BADGE_SRC = id => `assets/badges/${encodeURIComponent(id)}.webp?v=2`;
+// ?v=3: the badges-v3 artwork (title inside the art) reuses the old file names, so a cached old badge is never shown
+export const BADGE_SRC = id => `assets/badges/${encodeURIComponent(id)}.webp?v=3`;
 export const BADGES = ['badge_5', 'badge_10', 'badge_15', 'badge_20'];
 /** A checkpoint's badge image; an unknown id (a checkpoint added later in A02) gets the badge of its position. */
 export const badgeId = (c, i) => BADGES.includes(c.badgeAssetId) ? c.badgeAssetId : BADGES[Math.min(BADGES.length - 1, Math.max(0, i))];
 export const TIER = [['#087f73', '#edf9f5'], ['#3457d5', '#eff3ff'], ['#b96813', '#fff6e9'], ['#7950bf', '#f6f0ff']];   // badge manifest accents
-/** Badge card (handoff 2026-10-25): text-free emblem above, the exact title as real text below, one shared frame for all
- *  tiers. The square art slot is reserved before the image loads; a failed image leaves a quiet tile, the title stays. */
+/** Badge (owner 2026-10-25, badges-v3): the art carries its own title, so there is no frame, no white plate and no name
+ *  caption; the title is the image's alt text. The square slot is reserved before the image loads; a failed image leaves a
+ *  quiet tile with the title as text, so it is never an unexplained blank. */
 export function badge(c, i, cls = '', threshold = false) {
   const [a, t] = TIER[Math.min(TIER.length - 1, Math.max(0, i))];
-  return `<figure class="q-badgecard ${cls}" style="--badge-accent:${a};--badge-tint:${t}"><span class="q-badgecard__art"><img src="${BADGE_SRC(badgeId(c, i))}" width="512" height="512" alt="" decoding="async"></span>` +
-    `<figcaption><b>${esc(c.title)}</b>${threshold ? `<span>${fa(c.requiredCorrect)} جواب درست</span><span class="q-badgecard__reward${c.rewardAmount > 0 ? ' is-coin' : ''}">${c.rewardAmount > 0 ? `${fa(c.rewardAmount)} دیجی‌کوین جایزه` : 'فقط نشان'}</span>` : ''}</figcaption></figure>`;
+  return `<figure class="q-badgecard ${cls}" style="--badge-accent:${a};--badge-tint:${t}"><span class="q-badgecard__art" data-title="${esc(c.title)}"><img src="${BADGE_SRC(badgeId(c, i))}" width="512" height="512" alt="${esc(c.title)}" decoding="async"></span>` +
+    (threshold ? `<figcaption><span>${fa(c.requiredCorrect)} جواب درست</span><span class="q-badgecard__reward${c.rewardAmount > 0 ? ' is-coin' : ''}">${c.rewardAmount > 0 ? `${fa(c.rewardAmount)} دیجی‌کوین جایزه` : 'فقط نشان'}</span></figcaption>` : '') + '</figure>';
 }
 
 
@@ -181,8 +182,8 @@ export const TOUR = [
 ];
 const HAND = '<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><path d="M18 22V9a4 4 0 0 1 8 0v11l9.6 1.6A5 5 0 0 1 40 27.5L38 39a6 6 0 0 1-6 5H22a6 6 0 0 1-4.8-2.4L9.5 31.3a3.6 3.6 0 0 1 5.2-5L18 29Z" fill="#fff"/><path d="M18 22V9a4 4 0 0 1 8 0v11l9.6 1.6A5 5 0 0 1 40 27.5L38 39a6 6 0 0 1-6 5H22a6 6 0 0 1-4.8-2.4L9.5 31.3a3.6 3.6 0 0 1 5.2-5L18 29Z" fill="none" stroke="#1d2a5c" stroke-width="2.4" stroke-linejoin="round"/></svg>';
 export function tour(still, from) {
-  const cps = [{ requiredCorrect: 1, rewardAmount: 0, badgeAssetId: 'badge_5', title: 'بازاری تازه‌کار' }, { requiredCorrect: 3, rewardAmount: 1, badgeAssetId: 'badge_10', title: 'بازاری قدیمی' },
-    { requiredCorrect: 6, rewardAmount: 3, badgeAssetId: 'badge_15', title: 'قیمت‌شناس حرفه‌ای' }, { requiredCorrect: 10, rewardAmount: 5, badgeAssetId: 'badge_20', title: 'قیمت‌شناس اعظم' }];
+  const cps = [{ requiredCorrect: 1, rewardAmount: 0, badgeAssetId: 'badge_5', title: 'قیمت‌شناس' }, { requiredCorrect: 3, rewardAmount: 1, badgeAssetId: 'badge_10', title: 'تریدر' },
+    { requiredCorrect: 6, rewardAmount: 3, badgeAssetId: 'badge_15', title: 'بازاری' }, { requiredCorrect: 10, rewardAmount: 5, badgeAssetId: 'badge_20', title: 'تاجر' }];
   const ref = { displayTitle: 'ماگ سرامیکی', imageUrl: 'demo:first', art: DEMO_MUG, price: 245000 };
   const cmp = { displayTitle: 'هدفون بی‌سیم', imageUrl: 'demo:second', art: DEMO_HEADPHONES };
   const segs = TOUR.map(() => '<i><b></b></i>').join('');
@@ -315,14 +316,14 @@ export function leaveSheet(m) {
  * continue, no second «دریافت» step: the reward was registered by the server with the answer that crossed the line.
  */
 export function cpOverlay(c, index, reward, next) {
-  const head = `${esc(c.title)} رو گرفتی!`;   // factual: no population percentile is measured, so none is claimed
+  const head = `نشان ${esc(c.title)} رو گرفتی!`;   // factual: no population percentile is measured, so none is claimed
   const amount = c.rewardAmount > 0 ? c.rewardAmount : 0;
   const late = reward && reward.status === 'delayed' ? '<small>واریزش کمی طول می‌کشه</small>' : '';
   return `<div class="q-cp tier-${index}" role="dialog" aria-modal="true" aria-labelledby="cp-t" aria-describedby="cp-d"><div class="q-cp__in">` +
     `${badge(c,index,'q-cp__badge')}` +
     `<h2 class="q-cp__h" id="cp-t">${head}</h2><p class="q-cp__n" id="cp-d">${fa(c.requiredCorrect)} جواب درست دادی</p>` +
     (amount ? `<p class="q-cp__rw">${COIN}<span>${fa(amount)} دیجی‌کوین جایزه</span>${late}</p>` : '') +
-    `<p class="q-cp__next">${next ? `${fa(next.requiredCorrect - c.requiredCorrect)} جواب درست دیگه تا «${esc(next.title)}»` : 'همه‌ی چک‌پوینت‌ها رو گرفتی؛ دست ادامه داره.'}</p>` +
+    `<p class="q-cp__next">${next ? `${fa(next.requiredCorrect - c.requiredCorrect)} جواب درست تا ${esc(next.title)} شدن` : 'همه‌ی چک‌پوینت‌ها رو گرفتی؛ دست ادامه داره.'}</p>` +
     `</div><div class="q-foot">${PRIMARY('ادامه بده', ' data-act="cp-go"', I.fwd)}</div></div>`;
 }
 
@@ -368,7 +369,7 @@ export const dealsOf = list => (list?.items || []).filter(p => p.deal && (p.deal
 export function vEnd(m) {
   const rows = [`<div class="q-end__row"><span>امتیاز</span><b>${fa(m.score)}</b></div>`];
   if (!m.newRecord) rows.push(`<div class="q-end__row"><span>رکورد</span><b>${fa(m.best)}</b></div>`);
-  if (m.cp) rows.push(`<div class="q-end__row q-end__row--badge"><span>نشان</span><span class="q-end__badge"><img src="${BADGE_SRC(badgeId(m.cp, m.cpIndex))}" alt="" width="40" height="40"><b>${esc(m.cp.title)}</b></span></div>`);
+  if (m.cp) rows.push(`<div class="q-end__row q-end__row--badge"><span>نشان</span><span class="q-end__badge"><img src="${BADGE_SRC(badgeId(m.cp, m.cpIndex))}" alt="${esc(m.cp.title)}" width="64" height="64"></span></div>`);
   const better = m.better != null ? `<p class="q-end__better">از ${fa(m.better)} درصد دیجی‌کالایی‌ها بهتری!</p>` : '';
   const deals = m.deals.slice(0, 4);
   const dealsSec = m.dealsState === 'ready' && !deals.length ? '' :

@@ -568,3 +568,19 @@ body #app.gu, body.pe-play #app.gu, body.pe-play:not(.pe-dev) #app.gu, .pe-dev #
   .gu .q-tour__hand, .gu .q-tour .q-ab, .gu .q-offer, .gu .q-offer__burst i { animation: none !important; }
   .gu .q-tour[data-beat="4"] .q-tour__hand { transform: none; }
 }
+
+/* ---------------------------------------------------------------- badges-v3 (owner 2026-10-25)
+   The art carries its own title: no white card or plate behind any badge and no name caption under it. */
+.gu .q-badgecard { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+.gu .q-badgecard figcaption { background: transparent; }
+.gu .q-badgecard__art { background: transparent; border-radius: 0; }
+.gu .q-badgecard__art.is-failed { border-radius: 24px; background: rgba(255, 255, 255, .1); box-shadow: none; }
+.gu .q-badgecard__art.is-failed::after { content: attr(data-title); color: #fff; font-weight: 900; font-size: 18px; }
+.gu .q-cp__badge { width: min(260px, 66vw); }
+.gu .q-cp__h { max-width: 20ch; text-wrap: balance; }
+.gu .q-cp__badge .q-badgecard__art { width: 100%; }
+/* the reward is information, not an action: a glass chip, never the yellow of «ادامه بده» */
+.gu .q-cp__rw { color: #fff; background: rgba(255, 255, 255, .14); }
+.gu .q-cp__rw small { color: var(--gu-ice); }
+.gu .q-end__badge img { width: 64px; height: 64px; }
+@media (max-height: 740px) { .gu .q-cp__badge { width: min(200px, 56vw); } .gu .q-end__badge img { width: 52px; height: 52px; } }

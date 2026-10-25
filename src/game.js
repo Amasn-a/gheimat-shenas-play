@@ -149,8 +149,6 @@ function lossScreen() {
   const under = (S.fb ? feedback() : S.ref && S.run ? ready() : '').replace('<div class="q-page', '<div inert class="q-page');
   return under + V.offerModal({ cost: S.offer ? S.offer.cost : cfg().continueRule.cost, balance: S.balance, state: S.ui.skipping ? 'ending' : st, left });
 }
-// shortcut: placeholder share per checkpoint position (owner 2026-10-25, prototype-only) until the real figures are supplied
-const BETTER = [50, 70, 85, 95];
 function endScreen() {
   const v = S.view, run = S.run, score = run ? run.score : 0, cost = S.offer ? S.offer.cost : cfg().continueRule.cost;
   const before = (S.boot && S.boot.record) || 0, newRecord = score > 0 && score > before;
@@ -160,7 +158,8 @@ function endScreen() {
     'G06.REFUNDED': V.status('ok', `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.`, 'check') }[v] || '';
   const R = S.result, code = R && R.campaignCode && R.campaignCode.status !== 'sold_out' ? V.codeCard(R.campaignCode, S.ui.codeState === 'copied') : '';
   return V.vEnd({ title: newRecord ? 'رکوردتو زدی!' : cp ? 'ترکوندی!' : 'باختی!', score, best: Math.max(R ? R.record : 0, before, score), newRecord,
-    cp, cpIndex: ci, better: cp ? BETTER[Math.min(ci, BETTER.length - 1)] : null, deals: V.dealsOf(S.end && S.end.products), dealsState: S.end ? S.end.state : 'loading',
+    cp, cpIndex: ci, better: cp && cp.comparisonPercent != null ? cp.comparisonPercent : null,   // the checkpoint's own comparisonPercent (config: 50/70/90/99)
+    deals: V.dealsOf(S.end && S.end.products), dealsState: S.end ? S.end.state : 'loading',
     note, code, shareable: feat('share'), balance: S.balance, toast: S.ui.toast });
 }
 /** G12.DEALS: the seen products from the result screen's run, or from the latest finished run when opened from home. */

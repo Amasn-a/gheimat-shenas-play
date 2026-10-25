@@ -51,7 +51,6 @@ html:has(#app.gu), html:has(#app.gu) body { background: var(--gu-night); }
 .gu-world, html:has(#app.gu) body {
   background:
     radial-gradient(120% 55% at 50% -5%, #2E6BEA 0%, rgba(46, 107, 234, 0) 70%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 18px, rgba(255, 255, 255, 0) 18px 46px),
     linear-gradient(180deg, #1A47B5 0%, #12318A 45%, var(--gu-night) 100%);
   background-color: var(--gu-night);
 }
@@ -584,3 +583,161 @@ body #app.gu, body.pe-play #app.gu, body.pe-play:not(.pe-dev) #app.gu, .pe-dev #
 .gu .q-cp__rw small { color: var(--gu-ice); }
 .gu .q-end__badge img { width: 64px; height: 64px; }
 @media (max-height: 740px) { .gu .q-cp__badge { width: min(200px, 56vw); } .gu .q-end__badge img { width: 52px; height: 52px; } }
+
+/* ---------------------------------------------------------------- v4 — owner review 2026-10-25 (evening)
+   Gradient only behind every screen (no stripes; removed from .gu-world). Nothing that is not clickable has any shadow,
+   inset included; disabled controls are not clickable either. */
+.gu *:not(button):not(a):not(.q-spin):not(button *):not(a *)::before, .gu *:not(button):not(a):not(.q-spin):not(button *):not(a *)::after { box-shadow: none !important; }
+.gu button:disabled, .gu [aria-disabled="true"] { box-shadow: none !important; }
+
+/* track: a start dot at the far right (where the run begins); badges at the coins' size */
+.gu .q-track::before { content: ""; position: absolute; z-index: 1; inset-inline-start: -9px; top: calc(var(--node) / 2 - 9px); width: 18px; height: 18px;
+  border-radius: 50%; background: radial-gradient(circle, var(--gu-navy) 0 3.5px, var(--gu-yellow) 4px); }
+.gu .q-track__ic img { width: calc(var(--node) * 1.1); height: calc(var(--node) * 1.1); max-width: none; }   /* the wings make the art look smaller than a coin at the same box */
+
+/* question: the first product is a centred card (bigger photo, centred text); the second gives up its empty space */
+.gu .q-ref--strip { flex-direction: column; justify-content: center; text-align: center; gap: 8px; padding: 12px 16px; }
+.gu .q-ref--strip .q-img { width: 104px; height: 104px; }
+.gu .q-ref--strip .q-ref__b { justify-items: center; width: 100%; }
+.gu .q-ref--strip .q-ref__t { font-size: 16px; line-height: 1.55; }
+.gu .q-ref--strip .q-price { justify-content: center; }
+.gu .q-ref--strip .q-price b { font-size: 26px; }
+.gu .q-cmp { gap: 14px; padding-block: 12px; }
+.gu .q-cmp .q-img { max-width: min(206px, 76%); max-height: 206px; }
+.gu .q-cmp__t { font-size: 20px; }
+.gu .q-cmp .q-price b { font-size: 29px; }
+@media (max-height: 740px) {
+  .gu .q-ref--strip { gap: 4px; padding-block: 8px; }
+  .gu .q-ref--strip .q-img { width: 64px; height: 64px; }
+  .gu .q-ref--strip .q-ref__t { font-size: 14px; -webkit-line-clamp: 1; }
+  .gu .q-ref--strip .q-price b { font-size: 22px; }
+  .gu .q-cmp { gap: 8px; }
+  .gu .q-cmp .q-img { max-height: 90px; }
+  .gu .q-cmp__t { font-size: 17px; }
+}
+
+/* every bottom control at least 15 px above the screen's bottom edge, plus the safe area (owner 2026-10-25 evening) */
+.gu .q-page { padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
+.gu .q-home .q-homesheet { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+
+/* offer modal: the price is on the button; both buttons one height */
+.gu .q-offer__btns { align-items: stretch; }
+.gu .q-offer__go, .gu .q-offer__skip { min-height: 56px; font-size: 17px; }
+
+/* End 2: solid surfaces only (nothing see-through); the top scrolls above a fixed footer that sits on a fading backdrop */
+.gu .q-end .q-iconbtn { background: #2A4FB6; }
+.gu .q-end .q-bal { background: var(--gu-navy); color: #fff; }
+.gu .q-end__card { background: var(--gu-navy); }
+.gu .q-end__row { background: #1A3A9C; }
+.gu .q-end__better { background: #2E3F7E; color: var(--gu-yellow-hi); }
+.gu .q-end__nobadge { font-size: 15px; font-weight: 800; color: #fff; }
+.gu .q-end__dh hgroup { display: grid; gap: 2px; }
+.gu .q-end__dh hgroup p { margin: 0; font-size: 13px; font-weight: 500; color: var(--gu-ice); }
+.gu .q-end__main { padding-bottom: 24px; }
+.gu .q-end__foot { position: relative; padding: 26px var(--gutter) calc(15px + env(safe-area-inset-bottom)); margin-top: -20px; border-radius: 28px 28px 0 0;
+  background: linear-gradient(0deg, var(--gu-night) 0%, var(--gu-night) 55%, rgba(11, 31, 94, 0) 100%); }
+.gu .q-end__dl .q-deal { height: auto; }
+.gu .q-end__dl .q-deal__img { aspect-ratio: 4 / 5; padding: 10% 10% 4%; }
+.gu .q-deal__n { display: block; padding: 0 8px; font-size: 12px; font-weight: 700; line-height: 1.6; color: #1d2a5c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; unicode-bidi: plaintext; }
+.gu .q-deal__p { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0 4px; padding: 0 6px 8px; color: #1d2a5c; }
+.gu .q-deal__p b { font-size: 14px; font-weight: 900; }
+.gu .q-deal__p small { font-size: 10px; font-weight: 600; color: #565a70; }
+.gu .q-deal__p s { flex-basis: 100%; text-align: center; font-size: 11px; color: #81858b; }
+.gu .q-deal--row .q-deal__p { justify-content: flex-start; padding: 0; }
+.gu .q-deal--row .q-deal__p s { flex-basis: auto; }
+.gu .q-deal--row .q-deal__p b { font-size: 16px; }
+.gu .q-deal__img > .q-deal__coin { position: absolute; bottom: 4px; inset-inline-start: 6px; padding: 1px 6px 1px 8px; border-radius: 999px; background: #FFF4C2; }
+
+/* home (owner sketch 2026-10-25 evening): logo hero with two equal round buttons, record | streak, banner, start sheet */
+.gu .q-hero { position: relative; display: grid; place-items: center; min-height: 0; padding: 4px 0 0; }
+.gu .q-hero__logo { width: min(64%, 260px); height: auto; aspect-ratio: 3 / 2; object-fit: contain; }
+.gu .q-hero__side { position: absolute; inset-inline-end: 0; top: 50%; transform: translateY(-50%); display: grid; gap: 12px; }
+.gu .q-roundbtn { --lip: var(--gu-blue-lip); display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: #fff; font: inherit; cursor: pointer; }
+.gu .q-roundbtn > span { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; background: var(--gu-blue); box-shadow: var(--gu-inner), 0 var(--gu-drop) 0 var(--lip); }
+.gu .q-roundbtn:active > span { transform: translateY(2px); box-shadow: var(--gu-inner), 0 1px 0 var(--lip); }
+.gu .q-roundbtn .q-coin { width: 28px; height: 28px; }
+.gu .q-roundbtn small { font-size: 12px; font-weight: 800; color: #fff; }
+.gu .q-home__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gu .q-home__stats .q-record { flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; padding: 12px 14px !important; background: var(--gu-navy) !important; }
+.gu .q-home__stats .q-record .q-badgecard, .gu .q-home__stats .q-record .q-badgecard__art { width: 48px; height: 48px; }
+.gu .q-home__stats .q-record { position: relative; }
+.gu .q-home__stats .q-record .q-record__badge { position: absolute; inset-inline-end: 10px; top: 10px; }
+.gu .q-record__none { font-size: 13px; }
+.gu .q-streakcard { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 18px; background: var(--gu-navy); color: #fff; }
+.gu .q-streakcard > span { font-size: 13px; font-weight: 700; color: var(--gu-ice); }
+.gu .q-streakcard > b { font-size: 32px; line-height: 1.15; font-weight: var(--gu-display); color: #FF9F43; }
+.gu .q-streakcard > b small { font-size: 15px; color: #fff; }
+.gu .q-streakcard p { margin: 0; font-size: 12px; line-height: 1.6; font-weight: 700; color: var(--gu-ice); }
+/* banner: a big «۹۰٪» seal beside the copy */
+.gu .q-dealbanner { flex-direction: row; align-items: center; gap: 14px; padding: 14px 16px; }
+.gu .q-dealbanner__pct { flex: none; width: 74px; height: 74px; display: grid; place-content: center; justify-items: center; border-radius: 50%; background: #fff; color: var(--gu-promo-2); }
+.gu .q-dealbanner__pct b { font-size: 26px; line-height: 1; font-weight: var(--gu-display); color: var(--gu-promo-2); }
+.gu .q-dealbanner__pct small { order: -1; font-size: 12px; font-weight: 800; }
+.gu .q-dealbanner__txt { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 auto; }
+.gu .q-dealbanner__txt b { font-size: 17px; }
+.gu .q-dealbanner__go { align-self: flex-start; }
+@media (max-height: 740px) {
+  .gu .q-hero__logo { width: min(48%, 190px); }
+  .gu .q-roundbtn > span { width: 44px; height: 44px; }
+  .gu .q-hero__side { gap: 6px; }
+  .gu .q-dealbanner__pct { width: 58px; height: 58px; } .gu .q-dealbanner__pct b { font-size: 20px; }
+  .gu .q-streakcard > b, .gu .q-home__stats .q-record__n b { font-size: 26px; }
+}
+
+/* G13.COINS — DigiCoin history (layout after five-second-rush «جایزه‌های شما») */
+.gu .q-coins__main { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 12px; }
+.gu .q-coins__sum { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-radius: 18px; background: var(--gu-navy); }
+.gu .q-coins__sum span { font-size: 14px; font-weight: 700; color: var(--gu-ice); }
+.gu .q-coins__sum b { display: inline-flex; align-items: center; gap: 8px; font-size: 26px; font-weight: var(--gu-display); color: var(--gu-yellow); }
+.gu .q-coins__sum .q-coin { width: 28px; height: 28px; }
+.gu .q-coins__list { margin: 0; padding: 6px 0; list-style: none; border-radius: 18px; background: #fff; color: #1d2a5c; }
+.gu .q-coins__list li { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.gu .q-coins__ic { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; background: #FFF4C2; color: #8A5A00; }
+.gu .q-coins__ic .q-coin { width: 26px; height: 26px; }
+.gu .is-out .q-coins__ic { background: #EEF0F6; color: #565a70; }
+.gu .q-coins__t { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+.gu .q-coins__t b { font-size: 14px; font-weight: 800; color: #1d2a5c; }
+.gu .q-coins__t small { font-size: 12px; color: #81858b; }
+.gu .q-coins__a { font-size: 17px; font-weight: var(--gu-display); color: #15873F; }
+.gu .is-out .q-coins__a { color: #A3122B; }
+.gu .q-coins__empty { display: grid; justify-items: center; gap: 10px; padding: 28px 20px; border-radius: 18px; background: #fff; color: #1d2a5c; text-align: center; }
+.gu .q-coins__empty > svg { color: var(--gu-promo); }
+.gu .q-coins__empty h2 { margin: 0; font-size: 18px; font-weight: 900; color: #1d2a5c; }
+.gu .q-coins__empty p { margin: 0; font-size: 14px; line-height: 1.8; color: #565a70; }
+.gu .q-coins__empty .q-btn { min-height: 48px; padding-inline: 24px; width: auto; }
+.gu .q-coins__faq { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 0 16px; border: 0; border-radius: 18px; background: #fff; color: #1d2a5c; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 var(--gu-drop) 0 rgba(4, 14, 52, .45); }
+.gu .q-coins__faq span { flex: 1 1 auto; text-align: start; }
+.gu .q-end__dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 440px) { .gu .q-end__dl { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.gu .q-end__dl .q-deal, .gu .q-end__dl li { min-width: 0; }
+.gu .q-offer__go { white-space: nowrap; padding-inline: 10px; font-size: 16px; }
+.gu .q-hero__logo { width: min(280px, 64vw); }
+@media (max-height: 740px) { .gu .q-hero__logo { width: min(200px, 50vw); } }
+/* hero: the side buttons take their own column, so the hero is as tall as its tallest part (no overlap on short phones) */
+.gu .q-hero { grid-template-columns: 64px 1fr 64px; }
+.gu .q-hero__logo { grid-column: 2; }
+.gu .q-hero__side { position: static; transform: none; grid-column: 3; grid-row: 1; }
+.gu .q-end__foot .q-btn { white-space: nowrap; }
+@media (max-width: 380px) { .gu .q-end__foot .q-btn { font-size: 15px; padding-inline: 10px; } }
+@media (max-height: 740px) {
+  .gu .q-cmp .q-img { flex: none; width: 96px; height: 96px; max-height: none; }
+  .gu .q-hero__side small { display: none; }
+}
+@media (max-height: 600px) { .gu .q-cmp .q-img { width: 72px; height: 72px; } }
+/* daily modal: focus goes to the dialog itself, which shows no ring */
+.gu .q-daily:focus { outline: none; }
+/* text guide: flat solid cards (no light top edge), icon tile centred in the card and its art centred in the tile */
+.gu .q-gsec { align-items: center; padding: 14px 16px; border: 0; background: var(--gu-navy) !important; }
+.gu .q-gart { width: 56px; height: 56px; display: grid; place-items: center; place-content: center; border-radius: 16px; background: #1A3A9C; }
+.gu .q-gart--compare { grid-auto-flow: column; gap: 2px; }
+.gu .q-gart--compare i, .gu .q-gart--compare i:last-child { transform: none; width: 22px; height: 28px; display: grid; place-items: center; }
+.gu .q-gart--badges img, .gu .q-gart--badges img:nth-child(2) { width: 46px; height: 46px; margin: 0; transform: none; object-fit: contain; }
+/* home: room to breathe */
+.gu .q-home__scroll { gap: 20px; padding-top: 6px; }
+@media (max-height: 740px) { .gu .q-home__scroll { gap: 12px; } }
+.gu .q-roundbtn small { max-width: 72px; text-align: center; line-height: 1.4; }
+.gu .q-hero { grid-template-columns: 76px 1fr 76px; }
+.gu .q-guide__body { overflow-y: auto; align-content: safe center; }
+@media (max-height: 740px) { .gu .q-gsec { padding: 10px 12px; gap: 10px; } .gu .q-gart { width: 44px; height: 44px; border-radius: 12px; } .gu .q-gart--badges img { width: 38px; height: 38px; } }
+.gu .q-days li.is-today:not(.is-on) .q-day__c { background: var(--gu-yellow); color: var(--gu-yellow-ink); }

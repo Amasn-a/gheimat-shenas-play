@@ -92,5 +92,6 @@ export const api = {
   share: id => request('GET', `/runs/${id}/share`),
   onboarding: key => request('POST', '/player/onboarding', { key }),
   dailyReward: () => request('GET', '/player/daily-reward', { timeoutMs: 4000 }),
+  coinHistory: () => request('GET', '/player/coin-history', { timeoutMs: 6000 }),   // draft: G13.COINS
   claimDaily: key => request('POST', '/player/daily-reward/claim', { key, timeoutMs: 5000 }),
 };

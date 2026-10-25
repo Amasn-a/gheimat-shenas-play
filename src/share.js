@@ -7,31 +7,32 @@ const rounded = (c,x,y,w,h,r,fill)=>{c.fillStyle=fill;c.beginPath();c.roundRect(
 export async function createShareCard({score,title,badgeAssetId}) {
   await Promise.race([document.fonts?.ready || Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);
   const tier = title ? BADGES.indexOf(badgeAssetId) : -1;   // same-origin badge art only: the canvas never becomes tainted
-  const [logo,hero,qr,mark] = await Promise.all([load('assets/game-logo.webp'),load('assets/home-hero.webp'),load('assets/share-qr.png').catch(()=>null),tier >= 0 ? load(BADGE_SRC(badgeAssetId)).catch(()=>null) : null]);
+  // v4 (owner 2026-10-25 evening): the splash world and the approved splash logo, the score as the hero, the badge beside it
+  const [bg,logo,qr,mark] = await Promise.all([load('assets/splash/splash-background.webp').catch(()=>null),load('assets/splash/splash-logo.webp'),
+    load('assets/share-qr.png').catch(()=>null),tier >= 0 ? load(BADGE_SRC(badgeAssetId)).catch(()=>null) : null]);
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
   const c=canvas.getContext('2d');
-  rounded(c,0,0,1080,1350,0,'#fff9f0');
-  rounded(c,40,40,1000,1270,50,'#15162c');
-  c.fillStyle='#4055ed';c.beginPath();c.arc(1050,500,330,0,Math.PI*2);c.fill();
-  c.fillStyle='#f52b4d';c.beginPath();c.arc(-120,920,310,0,Math.PI*2);c.fill();
-  c.drawImage(logo,860,80,90,128);
-  c.direction='rtl';c.textAlign='right';c.fillStyle='#ffffff';c.font='800 62px Digikala';c.fillText('قیمت‌شناس',820,165);
-  c.font='500 30px Digikala';c.fillStyle='#cdd2f4';c.fillText('گرون‌تره یا ارزون‌تر؟',820,219);
-  c.drawImage(hero,180,260,720,480);
-  // the run's own result (not the all-time record): the same meaning as the button and the preview title
-  const earned = tier >= 0, sx = earned ? 380 : 540;
-  rounded(c,110,704,earned?510:860,earned?376:330,32,'#fffdf9');
-  c.textAlign='center';c.fillStyle='#565a70';c.font='600 32px Digikala';c.fillText('نتیجهٔ این دست',sx,768);
-  c.fillStyle='#15162c';c.font='800 142px Digikala';c.fillText(fa(score),sx,912);
-  c.font='700 30px Digikala';c.fillText('جواب درست دادم',sx,975);
-  if(earned){   // badges-v3: the art carries its own title, so no frame or plate (as in the game); the title is drawn only if the art fails
-    if(mark)c.drawImage(mark,630,709,366,366);
-    else{c.fillStyle='#fff';let fs=40;do{c.font=`900 ${fs}px Digikala`;}while(c.measureText(title).width>320&&--fs>18);c.fillText(title,805,912);}
-  }else if(!title){c.fillStyle='#cdd2f4';c.font='600 30px Digikala';c.fillText('تو چند تا قیمت رو درست حدس می‌زنی؟',540,1090);}
-  else{rounded(c,260,1059,560,65,20,'#4055ed');c.fillStyle='#fff';c.font='800 31px Digikala';c.fillText(title,540,1103);}
+  rounded(c,0,0,1080,1350,0,'#0B1F5E');
+  if(bg){const k=Math.max(1080/bg.width,1350/bg.height);c.drawImage(bg,(1080-bg.width*k)/2,(1350-bg.height*k)/2,bg.width*k,bg.height*k);}
+  const veil=c.createLinearGradient(0,0,0,1350);veil.addColorStop(0,'rgba(11,31,94,.15)');veil.addColorStop(.45,'rgba(11,31,94,.55)');veil.addColorStop(1,'rgba(11,31,94,.92)');
+  c.fillStyle=veil;c.fillRect(0,0,1080,1350);
+  c.drawImage(logo,255,36,570,380);
+  c.direction='rtl';c.textAlign='center';
+  const earned = tier >= 0, sx = earned ? 735 : 540;
+  rounded(c,70,450,940,470,48,'#10297A');
+  c.fillStyle='#D6ECFF';c.font='700 36px Digikala';c.fillText('نتیجه‌ی این دست',sx,548);
+  c.fillStyle='#FAC602';c.font='900 210px Digikala';c.fillText(fa(score),sx,770);
+  c.fillStyle='#fff';c.font='800 40px Digikala';c.fillText('جواب درست دادم',sx,850);
+  if(earned){
+    if(mark)c.drawImage(mark,95,485,400,400);
+    else{let fs=48;do{c.font=`900 ${fs}px Digikala`;}while(c.measureText(title).width>360&&--fs>18);c.fillText(title,295,700);}
+  }
+  rounded(c,70,950,940,330,48,'#ffffff');
+  const tx = qr ? 675 : 540;
+  if(qr){c.imageSmoothingEnabled=false;c.drawImage(qr,110,990,250,250);c.imageSmoothingEnabled=true;}
+  c.fillStyle='#15162c';c.font='900 42px Digikala';c.fillText('تو چند تا رو درست حدس می‌زنی؟',tx,1062);
+  c.fillStyle='#EF4056';c.font='900 40px Digikala';c.fillText('همین الان بازی کن!',tx,1134);
   // shortcut: share-qr.png is a pre-made QR of GAME_URL; regenerate it if GAME_URL changes (the Super App build will use its own link)
-  const tx=qr?970:540;if(qr){rounded(c,100,1110,189,189,20,'#ffffff');c.imageSmoothingEnabled=false;c.drawImage(qr,112,1122,165,165);c.imageSmoothingEnabled=true;c.textAlign='right';}
-  c.fillStyle='#fff';c.font='700 38px Digikala';c.fillText('نوبت توئه؛ بازی کن!',tx,1196);
-  c.direction='ltr';c.font='700 29px Digikala';c.fillStyle='#cdd2f4';c.fillText(GAME_URL.replace(/^https?:\/\//,'').replace(/\/$/,''),tx,1250);
+  c.direction='ltr';c.font='700 28px Digikala';c.fillStyle='#565a70';c.fillText(GAME_URL.replace(/^https?:\/\//,'').replace(/\/$/,''),tx,1208);
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG export failed')),'image/png'));
 }

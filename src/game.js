@@ -58,6 +58,7 @@ function screen() {
   if (v.startsWith('G01.')) return homeScreen();
   if (v === 'G02.GUIDE') return V.vGuide({ config: cfg(), demo: !!S.ui.guideTour, still: motion.reducedMotion() });
   if (v === 'G12.DEALS') return dealsScreen();
+  if (v === 'G13.COINS') return V.vCoins({ ...(S.coins || { state: 'loading', items: [] }), balance: S.balance, toast: S.ui.toast });
   if (v === 'G02.ONBOARDING') return onboardScreen();
   if (v === 'G03.LOADING') return loadingRun();
   if (['G03.READY', 'G03.PREPARING', 'G03.COUNTDOWN', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
@@ -152,13 +153,15 @@ function lossScreen() {
 function endScreen() {
   const v = S.view, run = S.run, score = run ? run.score : 0, cost = S.offer ? S.offer.cost : cfg().continueRule.cost;
   const before = (S.boot && S.boot.record) || 0, newRecord = score > 0 && score > before;
-  const cp = run ? run.highestCheckpoint : null, ci = cp ? Math.max(0, cpIndex(cp)) : 0;
+  const cp = run ? run.highestCheckpoint : null;
   const note = { 'G06.FAILED_END': V.status('no', 'پرداخت انجام نشد و کوینی کسر نشد؛ ادامه انجام نشد.', 'alert', false, true),
     'G06.FAILED_END.UNCONFIRMED': V.status('no', 'پرداخت به‌موقع تأیید نشد و ادامه انجام نشد؛ اگه مبلغی کسر شده باشه، خودکار برمی‌گرده.', 'alert'),
     'G06.REFUNDED': V.status('ok', `ادامه ممکن نشد؛ ${fa(cost)} دیجی‌کوین به حسابت برگشت.`, 'check') }[v] || '';
   const R = S.result, code = R && R.campaignCode && R.campaignCode.status !== 'sold_out' ? V.codeCard(R.campaignCode, S.ui.codeState === 'copied') : '';
-  return V.vEnd({ title: newRecord ? 'رکوردتو زدی!' : cp ? 'ترکوندی!' : 'باختی!', score, best: Math.max(R ? R.record : 0, before, score), newRecord,
-    cp, cpIndex: ci, better: cp && cp.comparisonPercent != null ? cp.comparisonPercent : null,   // the checkpoint's own comparisonPercent (config: 50/70/90/99)
+  const best = Math.max(R ? R.record : 0, before, score);   // a first run's score is the record
+  const cps = cfg().checkpoints, bi = cps.map(c => c.requiredCorrect <= best).lastIndexOf(true);   // the best badge so far (all-time, like the record)
+  return V.vEnd({ title: newRecord ? 'رکوردتو زدی!' : cp ? 'ترکوندی!' : 'باختی!', score, best, newRecord,
+    badge: bi >= 0 ? cps[bi] : null, badgeIndex: bi, better: cp && cp.comparisonPercent != null ? cp.comparisonPercent : null,   // the checkpoint's own comparisonPercent (config: 50/70/90/99)
     deals: V.dealsOf(S.end && S.end.products), dealsState: S.end ? S.end.state : 'loading',
     note, code, shareable: feat('share'), balance: S.balance, toast: S.ui.toast });
 }
@@ -179,6 +182,17 @@ function openDeals(src) {
   host.setBackHandler(() => { if (S.view === 'G12.DEALS') { closeDeals(); return true; } return false; });
   go('G12.DEALS');
 }
+/** G13.COINS: the DigiCoin history, read fresh each time it opens (simulated ledger in Play). */
+async function openCoins() {
+  if (S.view !== 'G13.COINS') S.ui.coinsFrom = S.view;
+  S.coins = { state: 'loading', items: [] };
+  host.setBackHandler(() => { if (S.view === 'G13.COINS') { closeCoins(); return true; } return false; });
+  go('G13.COINS');
+  try { const r = await api.coinHistory(); S.coins = { state: 'ready', items: r.items || [] }; if (r.balance != null) S.balance = r.balance; }
+  catch (e) { S.coins = { state: 'error', items: [] }; }
+  if (S.view === 'G13.COINS') render();
+}
+function closeCoins() { host.setBackHandler(null); const v = S.ui.coinsFrom || 'G01.READY'; S.ui.coinsFrom = null; go(v); }
 function closeDeals() {
   const v = S.ui.dealsFrom || 'G01.READY'; S.ui.dealsFrom = null;
   host.setBackHandler(isLoss(v) ? LOSS_BACK : null);
@@ -396,7 +410,7 @@ function routeHome() {
   go(b.quota.playsLeft > 0 ? 'G01.READY' : 'G01.QUOTA_EXHAUSTED');
   if (S.ui.daily) focusModal();
 }
-function focusModal() { requestAnimationFrame(() => { const b = root.querySelector('.q-daily .q-btn:not([disabled])'); if (b) b.focus({ preventScroll: true }); }); }
+function focusModal() { requestAnimationFrame(() => { const d = root.querySelector('.q-daily'); if (d) d.focus({ preventScroll: true }); }); }   // the dialog, not its button: no focus ring on «دریافت» (owner 2026-10-25); Tab reaches the button
 
 /** «کالاهای دست قبلی»: only the products shown in the player's latest finished run (§5), loaded once per run id. */
 async function loadHistory(runId) {
@@ -1009,8 +1023,8 @@ function tickLoop() {
         const tm = $('[data-timer]', root);
         if (tm) {
           tm.style.setProperty('--p', n.p);
-          if (tm.classList.contains('is-low') !== n.low) { tm.classList.toggle('is-low', n.low); tm.classList.toggle('is-run', !n.low); const l = tm.querySelector('.q-timer__l'); if (l) l.textContent = n.low ? 'وقت داره تموم می‌شه' : 'ثانیه وقت داری'; }
-          const b = tm.querySelector('.q-timer__n'); if (b && b.textContent !== n.t) { b.textContent = n.t; tm.setAttribute('aria-label', `${n.t} ثانیه`); }
+          if (tm.classList.contains('is-low') !== n.low) { tm.classList.toggle('is-low', n.low); tm.classList.toggle('is-run', !n.low); const l = tm.querySelector('.q-timer__l'); if (l) l.textContent = n.low ? 'وقت داره تموم می‌شه' : 'زمان باقی‌مانده:'; }
+          const b = tm.querySelector('.q-timer__n'); if (b && b.textContent !== n.t) { b.textContent = n.t; tm.setAttribute('aria-label', `زمان باقی‌مانده: ${n.t} ثانیه`); }
         }
         // two short warnings at 3 s and 1 s, only through the host's haptics (§7); the visual emphasis works without them
         if (n.rem <= 3000 && q.buzz < 1) { q.buzz = 1; haptic('warning'); }
@@ -1153,9 +1167,10 @@ function onClick(e) {
     'tour-replay': () => { S.ui.tour = null; render(); },
     guide: () => { S.ui.guideTour = false; openGuide(); }, 'guide-close': () => { S.ui.guideTour = false; closeGuide(); },
     'onb-skip': finishOnboarding,
-    'onb-start': async () => { await finishOnboarding(); if (S.view === 'G01.READY' && !S.ui.daily) startRun(); },
+    'onb-start': finishOnboarding,   // owner 2026-10-25 evening: the tour ends on the home page, never straight into a run
     'onb-rules': () => { S.ui.guideTour = false; openGuide(); },
     'offer-skip': skipOffer, 'end-close': lossHome, 'end-home': lossHome,
+    coins: openCoins, 'coins-retry': openCoins, 'coins-close': closeCoins, 'coins-guide': () => { closeCoins(); S.ui.guideTour = false; openGuide(); },
     deals: () => openDeals('home'), 'deals-end': () => openDeals('end'), 'deals-close': closeDeals,
     'deals-retry': () => { if (S.ui.dealsSrc === 'end' && S.end) { loadEndDeals(S.end.runId); render(); } else { const id = S.home.runId || (S.boot && S.boot.lastRunId); S.home.runId = null; S.home.state = 'loading'; render(); loadHistory(id); } },
     'daily-claim': claimDaily, 'daily-check': checkDaily, 'daily-close': () => { S.ui.daily = null; render(); refocus('[data-act="start"],[data-act="guide"]'); },

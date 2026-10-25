@@ -691,6 +691,16 @@ function share(runId, device) {
   return { score: run.score, checkpointTitle: cp ? cp.title : null, badgeAssetId: cp ? cp.badgeAssetId : null, gameName: 'قیمت‌شناس', deepLink: 'https://amasn-a.github.io/gheimat-shenas-play/' };
 }
 
+// prototype-only (owner 2026-10-25, G13.COINS): the player's DigiCoin history, newest first. Production: the wallet's own ledger for this game.
+const COIN_LABEL = { CHECKPOINT_REWARD: 'جایزه‌ی چک‌پوینت', RECORD_REWARD: 'جایزه‌ی رکورد تازه', STREAK_REWARD: 'جایزه‌ی روزانه', CHARGE: 'ادامه‌ی بازی', REFUND: 'برگشت هزینه‌ی ادامه' };
+function coinHistory() {
+  const items = Object.values(S.ops).filter(o => COIN_LABEL[o.type] && o.amount > 0 && ['SUCCEEDED', 'PENDING', 'UNKNOWN', 'NEEDS_REVIEW'].includes(o.status))
+    .sort((a, b) => (b.claimedAt ?? b.createdAt) - (a.claimedAt ?? a.createdAt)).slice(0, 50)
+    .map(o => { const cp = o.type === 'CHECKPOINT_REWARD' ? cpById(o.rewardKey) : null;
+      return { operationId: o.operationId, kind: o.type, label: COIN_LABEL[o.type] + (cp ? ` «${cp.title}»` : ''), amount: o.type === 'CHARGE' ? -o.amount : o.amount,
+        status: o.status === 'SUCCEEDED' ? 'done' : 'pending', at: iso(o.claimedAt ?? o.createdAt) }; });
+  return { balance: S.wallet.balance, items, serverTime: iso(clockNow) };
+}
 function dailyView() {   // DailyRewardService.view
   const today = dateOf(clockNow), attended = new Set(eligibleDates());
   const days = []; for (let i = DAYS_SHOWN - 1; i >= 0; i--) { const d = addDays(today, -i); days.push({ date: d, attended: attended.has(d), today: i === 0 }); }
@@ -759,6 +769,7 @@ const ROUTES = [
   ['GET', /^\/runs\/([a-z0-9]+)\/share$/, (m, c) => share(m[1], c.device)],
   ['POST', /^\/player\/onboarding$/, () => { S.player.onboarded = true; return { ok: true }; }],
   ['GET', /^\/player\/daily-reward$/, () => dailyView()],
+  ['GET', /^\/player\/coin-history$/, () => coinHistory()],
   ['POST', /^\/player\/daily-reward\/claim$/, () => claimDaily()],
 ];
 const json = (status, body, extra) => ({ status, text: JSON.stringify(body), headers: { 'Content-Type': 'application/json', ...extra } });

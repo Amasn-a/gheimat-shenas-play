@@ -100,56 +100,84 @@ function homeSheet(v, m) {
   else cta = PRIMARY('شروع بازی', ' data-act="start"', I.play);
   return `<section class="q-homesheet" aria-label="شروع بازی">${pre}${v === 'G01.ACTIVE_RUN' ? '' : chances}${cta}</section>`;
 }
-/** Promo under the record card: opens the discounted products the player has seen (G12.DEALS). */
+/** Promo under the record and streak cards: opens the discounted products the player has seen (G12.DEALS). */
 const DEALS_BANNER = `<button class="q-dealbanner" data-act="deals" aria-label="تا ۹۰ درصد تخفیف روی کالاهایی که دیدی؛ دیدن کالاها">` +
-  `<b>تا ۹۰ درصد تخفیف روی کالاهایی که دیدی!</b><span class="q-dealbanner__go">از دستشون نده و کلیک کن ${ICO('fwd', 16)}</span></button>`;
+  `<span class="q-dealbanner__pct" aria-hidden="true"><b>۹۰٪</b><small>تا</small></span>` +
+  `<span class="q-dealbanner__txt"><b>تخفیف روی کالاهایی که دیدی!</b><span class="q-dealbanner__go">از دستشون نده و کلیک کن ${ICO('fwd', 16)}</span></span></button>`;
+/**
+ * G01 home (owner 2026-10-25 evening, sketch): top bar · the game logo with two equal round buttons beside it (راهنما,
+ * دیجی‌کوین‌های من) · record and streak side by side · the deals banner · the start sheet.
+ */
 export function vHome(v, m) {
   const b = m.boot;
   const top = `<header class="q-hdr q-hdr--home"><button class="q-iconbtn" data-act="exit-app" aria-label="بازگشت به اپ">${I.back}</button>` +
-    `<h1 class="q-brand">قیمت‌شناس</h1><span class="q-flex"></span>${balance(m.balance)}` +
-    `<button class="q-iconbtn q-guidebtn" data-act="guide" aria-label="راهنمای بازی">${ICO('help', 22)}</button></header>`;
+    `<h1 class="q-brand">قیمت‌شناس</h1><span class="q-flex"></span>${balance(m.balance)}</header>`;
+  const hero = `<section class="q-hero"><img class="q-hero__logo" src="assets/splash/splash-logo.webp" width="1536" height="1024" alt="قیمت‌شناس" decoding="async">` +
+    `<div class="q-hero__side"><button class="q-roundbtn" data-act="guide" aria-label="راهنمای بازی"><span>${ICO('help', 24)}</span><small>راهنما</small></button>` +
+    `<button class="q-roundbtn" data-act="coins" aria-label="تاریخچه جوایز"><span>${ICO('history', 24)}</span><small>تاریخچه جوایز</small></button></div></section>`;
   const cps = b.config.checkpoints;
   const earnedIndex = cps.reduce((last,c,i)=>b.record >= c.requiredCorrect ? i : last,-1);
   const side = earnedIndex >= 0 ? badge(cps[earnedIndex], earnedIndex, 'q-record__badge') : '<p class="q-record__none">هنوز بازی نکردی!!!</p>';
   const record = `<section class="q-record" aria-label="بهترین رکوردت: ${fa(b.record)} جواب درست"><div class="q-record__n"><span>بهترین رکوردت</span><b>${fa(b.record)}</b></div>${side}</section>`;
+  const n = (b.dailyReward && b.dailyReward.streakDays) || 0;
+  const streak = `<section class="q-streakcard" aria-label="${fa(n)} روز پشت‌سرهم بازی کردی"><span>روزهای پشت‌سرهم</span><b>${fa(n)} <small>روز</small></b>` +
+    `<p>${n ? 'فردا هم بیا، زنجیره‌ات رو نشکن!' : 'امروز بازی کن، زنجیره‌ات رو شروع کن!'}</p></section>`;
   const o = b.activeRun && !b.activeRun.onThisDevice ? b.activeRun : null;
   const note = o ? status('warn', `یه دست روی دستگاه دیگه‌ات بازه. با شروع دست جدید، اون دست با ${fa(o.score)} جواب درست تموم می‌شه.`, 'devices') : '';
   const camp = b.campaign ? status('', `کمپین ویژه: با رسیدن به ${fa(b.campaign.checkpointRequiredCorrect)} جواب درست، کد تخفیف ${money(b.campaign.codeAmountToman)} تومانی هم می‌گیری.`, 'info') : '';
-  return page('q-home', top + `<main class="q-home__scroll">${record}${m.productsOn ? DEALS_BANNER : ''}${camp}${note}</main>` + homeSheet(v, m), (m.modal || '') + toastHTML(m.toast));
+  return page('q-home', top + `<main class="q-home__scroll">${hero}<div class="q-home__stats">${record}${feature(m, 'streak') ? streak : ''}</div>${m.productsOn ? DEALS_BANNER : ''}${camp}${note}</main>` + homeSheet(v, m), (m.modal || '') + toastHTML(m.toast));
+}
+const feature = (m, k) => !m.boot.config.features || m.boot.config.features[k] !== false;
+
+/** G13.COINS «تاریخچه جوایز» — the player's DigiCoin history (owner 2026-10-25; layout after five-second-rush «جایزه‌های شما»). Data simulated in Play. */
+export function vCoins(m) {
+  const sum = `<section class="q-coins__sum"><span>موجودی دیجی‌کوین</span><b>${COIN}${m.balance == null ? '—' : fa(m.balance)}</b></section>`;
+  const when = iso => { try { return new Date(iso).toLocaleDateString('fa-IR', { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
+  const body = m.state === 'loading' ? `<div class="q-state" role="status">${SPIN}<p>در حال آوردن تاریخچه…</p></div>`
+    : m.state === 'error' ? statecard('alert', 'no', 'تاریخچه نیومد', 'اتصال رو بررسی کن و دوباره امتحان کن.', PRIMARY('دوباره امتحان کن', ' data-act="coins-retry"', I.refresh))
+    : !m.items.length ? `<section class="q-coins__empty">${ICO('gift', 44)}<h2>هنوز دیجی‌کوینی نگرفتی</h2><p>به چک‌پوینت برس، رکورد بزن یا هر روز سر بزن تا دیجی‌کوین بگیری.</p>${SECONDARY('بازگشت به بازی', ' data-act="coins-close"')}</section>`
+    : `<ul class="q-coins__list">${m.items.map(x => `<li class="${x.amount < 0 ? 'is-out' : 'is-in'}"><span class="q-coins__ic">${x.amount < 0 ? ICO('replay', 20) : COIN}</span>` +
+      `<span class="q-coins__t"><b>${esc(x.label)}</b><small>${when(x.at)}${x.status === 'pending' ? ' · در حال واریز' : ''}</small></span>` +
+      `<b class="q-coins__a" dir="ltr">${x.amount < 0 ? '−' : '+'}${fa(Math.abs(x.amount))}</b></li>`).join('')}</ul>`;
+  return page('q-coins', hdr('تاریخچه جوایز', 'coins-close', 'بازگشت') + `<main class="q-coins__main">${sum}${body}` +
+    `<button class="q-coins__faq" data-act="coins-guide">${ICO('help', 20)}<span>راهنمای بازی</span>${ICO('fwd', 18)}</button></main>`, toastHTML(m.toast));
 }
 
 // ---------------------------------------------------------------- G01 daily reward modal
-const WD = ['ی', 'د', 'س', 'چ', 'پ', 'ج', 'ش'], WDF = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];   // getUTCDay()
 /**
- * «جایزه‌ی روزانه». The 7 days keep the server's floating window and its dates in calendar order: the earliest day sits at
- * the physical right, each next day to its left (RTL, owner 2026-10-25). The only claim button sends one claim; on success the modal closes and the home shows
- * (no second «دریافت شد» surface). ui.phase: claimable | claiming | processing | slow | error.
+ * «جایزه‌ی روزانه» (owner 2026-10-25 evening): not weekdays — the streak's own days. «روز ۱» is the player's first day of the
+ * current streak, at the physical right; every day of the streak so far is filled, today is marked. After day 7 the window
+ * moves on (روز ۲…۸). The only claim button sends one claim; on success the modal closes and the home shows.
+ * ui.phase: claimable | claiming | processing | slow | error.
  */
 export function dailyModal(d, ui) {
-  const days = [...d.days].sort((a,b)=>a.date.localeCompare(b.date)).map(x => {   // owner 2026-10-25: earlier day at the right (شنبه | یکشنبه | …)
-    const w = new Date(x.date + 'T12:00:00Z').getUTCDay();
-    const st = x.today ? (x.attended ? 'امروز، حضور ثبت شده' : 'امروز') : x.attended ? 'حضور ثبت شده' : 'غیرفعال';
-    return `<li aria-current="${x.today ? 'date' : 'false'}" class="${x.attended ? 'is-on' : ''}${x.today ? ' is-today' : ''}" aria-label="${WDF[w]}، ${st}"><span class="q-day__c" aria-hidden="true">${x.attended ? ICO('check', 16) : ''}</span><span aria-hidden="true">${x.today ? 'امروز' : WD[w]}</span></li>`;
+  const n = d.streakDays || 0, todayOn = !!(d.days || []).find(x => x.today && x.attended);
+  const now = todayOn ? Math.max(1, n) : n + 1, from = Math.max(1, now - 6);
+  const days = Array.from({ length: 7 }, (_, k) => {
+    const day = from + k, on = day <= n, today = day === now;
+    return `<li aria-current="${today ? 'date' : 'false'}" class="${on ? 'is-on' : ''}${today ? ' is-today' : ''}" aria-label="روز ${fa(day)}${today ? '، امروز' : ''}${on ? '، حضور ثبت شده' : ''}">` +
+      `<span class="q-day__c" aria-hidden="true">${on ? ICO('check', 16) : ''}</span><span aria-hidden="true">${today ? 'امروز' : `روز ${fa(day)}`}</span></li>`;
   }).join('');
+  const claim = `دریافت ${fa(d.amount)} دیجی‌کوین`;
   const p = ui.phase;
   let body = '', btns;
-  if (p === 'claiming') btns = BUSY('دریافت کن');
-  else if (p === 'processing') { body = status('', 'در حال ثبت جایزه…', null, true); btns = BUSY('دریافت کن'); }
+  if (p === 'claiming') btns = BUSY(claim);
+  else if (p === 'processing') { body = status('', 'در حال ثبت جایزه…', null, true); btns = BUSY(claim); }
   else if (p === 'slow') { body = status('warn', 'ثبت جایزه بیشتر از همیشه طول کشیده. جایزه‌ات محفوظه؛ دوباره بررسی کن.', 'clock'); btns = PRIMARY('بررسی دوباره', ' data-act="daily-check"', I.refresh) + SECONDARY('بعداً', ' data-act="daily-close"'); }
   else if (p === 'error') { body = status('no', ui.message || 'اتصال برقرار نشد؛ جایزه‌ات محفوظه. دوباره امتحان کن.', 'alert', false, true); btns = PRIMARY('دوباره امتحان کن', ' data-act="daily-claim"', I.refresh) + SECONDARY('بعداً', ' data-act="daily-close"'); }
-  else btns = PRIMARY('دریافت کن', ' data-act="daily-claim"');
+  else btns = PRIMARY(claim, ' data-act="daily-claim"', COIN);
   const closable = p !== 'claiming' && p !== 'processing';
-  return `<div class="q-scrim q-modal"><section class="q-sheet q-daily" role="dialog" aria-modal="true" aria-labelledby="daily-t" data-phase="${p}">` +
+  return `<div class="q-scrim q-modal"><section class="q-sheet q-daily" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="daily-t" data-phase="${p}">` +
     (closable ? `<button class="q-iconbtn q-sheet__x" data-act="daily-close" aria-label="بستن">${ICO('x', 20)}</button>` : '') +
     `<div class="q-daily__streak"><b>${fa(d.streakDays)}</b><span>روز پشت‌سرهم</span></div><h2 id="daily-t"><span class="q-daily__gift" aria-hidden="true">${ICO('gift', 22)}</span>جایزه‌ی روزانه</h2>` +
-    `<ol class="q-days" aria-label="روزهای حضور در هفته اخیر">${days}</ol><p class="q-daily__rw">${COIN}<b>${fa(d.amount)}</b><span>دیجی‌کوین</span></p>${body}<div class="q-sheet__btns">${btns}</div></section></div>`;
+    `<ol class="q-days" aria-label="روزهای پشت‌سرهم حضورت">${days}</ol>${body}<div class="q-sheet__btns">${btns}</div></section></div>`;
 }
 
 // ---------------------------------------------------------------- G02 guide (§15) and onboarding (§14)
 const GUIDE_ART = {
   compare: `<span class="q-gart q-gart--compare" aria-hidden="true"><i>${TAG}</i><i>${TAG}</i></span>`,
   time: `<span class="q-gart" aria-hidden="true">${ICO('clock', 30)}</span>`,
-  badges: `<span class="q-gart q-gart--badges" aria-hidden="true">${BADGES.slice(0, 3).map(b => `<img src="${BADGE_SRC(b)}" alt="">`).join('')}</span>`,
+  badges: `<span class="q-gart q-gart--badges" aria-hidden="true"><img src="${BADGE_SRC(BADGES[0])}" alt=""></span>`,   // one badge: the art carries its title, three were too small to read
   cont: `<span class="q-gart" aria-hidden="true">${ICO('undo', 30)}</span>`,
 };
 export function vGuide(m) {
@@ -195,7 +223,7 @@ export function tour(still, from) {
     `<div class="q-tour__dec">${decide('on', null, '', 0)}${decide('ok', 'higher', '', 0)}<span class="q-tour__hand">${HAND}</span></div></div>`;
   const end = `<div class="q-tour__end" data-cap="7"><h2>حالا نوبت توئه!</h2><p>قیمت‌ها رو مقایسه کن، رکورد بزن و نشان بگیر.</p>` +
     (from === 'guide' ? PRIMARY('فهمیدم', ' data-act="guide-close"') + BTN('q-btn--text', 'دوباره ببینم', ' data-act="tour-replay"', ICO('replay', 18))
-      : PRIMARY('شروع بازی', ' data-act="onb-start"', I.play) + BTN('q-btn--text', 'راهنمای متنی', ' data-act="onb-rules"')) + '</div>';
+      : PRIMARY('بریم!', ' data-act="onb-start"', I.fwd) + BTN('q-btn--text', 'راهنمای متنی', ' data-act="onb-rules"')) + '</div>';
   return `<section class="q-tour${still ? ' is-still' : ''}" data-beat="1" aria-label="آموزش بازی">` +
     `<div class="q-tour__top"><div class="q-tour__segs" aria-hidden="true">${segs}</div>` +
     `<button class="q-tour__skip" data-act="${from === 'guide' ? 'guide-rules' : 'onb-skip'}">${from === 'guide' ? 'بستن' : 'رد کردن'}</button></div>` +
@@ -240,10 +268,10 @@ export function timer(o) {
       `<span class="q-timer__n q-timer__v${o.pop ? ' q-pop-once' : ''}" aria-hidden="true">${ICO(ic, 24)}</span></div>`;
   }
   const n = mode === 'idle' ? fa(10) : mode === 'zero' ? fa(0) : o.t;
-  const lab = { idle: 'ثانیه وقت داری', run: 'ثانیه وقت داری', low: 'وقت داره تموم می‌شه', zero: 'زمان تموم شد', busy: 'در حال بررسی پاسخ...' }[mode];
+  const lab = { idle: 'زمان باقی‌مانده:', run: 'زمان باقی‌مانده:', low: 'وقت داره تموم می‌شه', zero: 'زمان تموم شد', busy: 'در حال بررسی پاسخ...' }[mode];
   const num = mode === 'busy' ? `<span class="q-timer__n">${SPIN}</span>` : `<b class="q-timer__n">${n}</b>`;
   const live = mode === 'run' || mode === 'low';
-  return `<div class="q-timer is-${mode}" data-tour="timer" ${live ? 'role="timer" data-timer' : 'role="status"'} aria-label="${mode === 'zero' ? lab : mode === 'busy' ? 'در حال بررسی پاسخ' : `${n} ${lab}`}">` +
+  return `<div class="q-timer is-${mode}" data-tour="timer" ${live ? 'role="timer" data-timer' : 'role="status"'} aria-label="${mode === 'zero' ? lab : mode === 'busy' ? 'در حال بررسی پاسخ' : mode === 'low' ? `${n} ثانیه؛ ${lab}` : `زمان باقی‌مانده: ${n} ثانیه`}">` +
     `<span class="q-timer__l">${lab}</span>${num}</div>`;
 }
 export function refCard(card, strip) {
@@ -341,7 +369,7 @@ export function offerModal(m) {
   if (m.state === 'failed') note = status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز می‌تونی دوباره امتحان کنی.', 'alert', false, true);
   if (busy) main = BUSY(busy, 'q-btn--primary q-offer__go');
   else if (m.state === 'unknown') main = BTN('q-btn--secondary q-offer__go', 'بررسی دوباره', ' data-act="recheck"', I.refresh);
-  else main = BTN('q-btn--primary q-offer__go', 'ادامه‌ی بازی', ' data-act="continue"', COIN);
+  else main = BTN('q-btn--primary q-offer__go', `ادامه با ${fa(m.cost)} دیجی‌کوین`, ' data-act="continue"', COIN);
   const skip = BTN('q-btn--secondary q-offer__skip', 'رد کردن', ' data-act="offer-skip"' + (locked ? L : ''));
   const left = m.left != null ? `<p class="q-offer__left" aria-live="off">${ICO('clock', 16)}<b data-offer-left>${m.left}</b> ثانیه</p>` : '';
   return `<div class="q-scrim q-modal q-offerlayer"><div class="q-offer__bal">${balance(m.balance)}</div>` +
@@ -352,28 +380,30 @@ export function offerModal(m) {
     `<div class="q-offer__btns">${main}${skip}</div></section></div>`;
 }
 /** A seen product with its (simulated) deal: tile for the result screen and the deals page. */
+const dealPrice = (p, d) => p.gamePrice ? `<span class="q-deal__p">${d.discountPercent ? `<s dir="ltr">${money(p.gamePrice)}</s>` : ''}<b dir="ltr">${money(Math.round(p.gamePrice * (100 - (d.discountPercent || 0)) / 100 / 1000) * 1000)}</b><small>تومان</small></span>` : '';
 function dealTile(p, big) {
   const d = p.deal || {};
   const tag = d.discountPercent ? `<span class="q-deal__off">${fa(d.discountPercent)}٪</span>` : '';
   const coin = d.coinBack ? `<span class="q-deal__coin">${COIN}${fa(d.coinBack)}</span>` : '';
   const open = p.link ? ` data-act="open-product" data-link="${esc(p.link)}"` : ' disabled';
   return `<li><button class="q-deal${big ? ' q-deal--row' : ''}"${open} aria-label="${esc(p.displayTitle)}${d.discountPercent ? `، ${fa(d.discountPercent)} درصد تخفیف` : ''}، مشاهده کالا">` +
-    `<span class="q-deal__img">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" decoding="async">` : ''}${tag}</span>` +
-    `${big ? `<span class="q-deal__b"><span class="q-deal__t">${title(p.displayTitle)}</span>${coin}<span class="q-deal__go">مشاهده کالا ${ICO('fwd', 16)}</span></span>` : coin}</button></li>`;
+    `<span class="q-deal__img">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" decoding="async">` : ''}${tag}${big ? '' : coin}</span>` +
+    `${big ? `<span class="q-deal__b"><span class="q-deal__t">${title(p.displayTitle)}</span>${dealPrice(p, d)}${coin}<span class="q-deal__go">مشاهده کالا ${ICO('fwd', 16)}</span></span>`
+      : `<span class="q-deal__n">${title(p.displayTitle)}</span>${dealPrice(p, d)}`}</button></li>`;
 }
 export const dealsOf = list => (list?.items || []).filter(p => p.deal && (p.deal.discountPercent || p.deal.coinBack));
 /**
- * End screen 2 — the result. m: { title, score, best, newRecord, cp, cpIndex, better (percent or null), deals, dealsState,
+ * End screen 2 — the result. m: { title, score, best, newRecord, badge, badgeIndex (best badge so far or null), better (percent or null), deals, dealsState,
  * note (payment message html), code, shareable, balance, toast }.
  */
 export function vEnd(m) {
-  const rows = [`<div class="q-end__row"><span>امتیاز</span><b>${fa(m.score)}</b></div>`];
-  if (!m.newRecord) rows.push(`<div class="q-end__row"><span>رکورد</span><b>${fa(m.best)}</b></div>`);
-  if (m.cp) rows.push(`<div class="q-end__row q-end__row--badge"><span>نشان</span><span class="q-end__badge"><img src="${BADGE_SRC(badgeId(m.cp, m.cpIndex))}" alt="${esc(m.cp.title)}" width="64" height="64"></span></div>`);
+  const rows = [`<div class="q-end__row"><span>امتیاز این دست</span><b>${fa(m.score)}</b></div>`, `<div class="q-end__row"><span>رکورد کل</span><b>${fa(m.best)}</b></div>`,
+    `<div class="q-end__row q-end__row--badge"><span>نشان</span>${m.badge ? `<span class="q-end__badge"><img src="${BADGE_SRC(badgeId(m.badge, m.badgeIndex))}" alt="${esc(m.badge.title)}" width="64" height="64"></span>`
+      : '<b class="q-end__nobadge">تا حالا نشانی نگرفتی!</b>'}</div>`];
   const better = m.better != null ? `<p class="q-end__better">از ${fa(m.better)} درصد دیجی‌کالایی‌ها بهتری!</p>` : '';
   const deals = m.deals.slice(0, 4);
   const dealsSec = m.dealsState === 'ready' && !deals.length ? '' :
-    `<section class="q-end__deals" aria-labelledby="end-deals"><div class="q-end__dh"><h2 id="end-deals">کالاهای این دست تخفیف خوردن</h2>` +
+    `<section class="q-end__deals" aria-labelledby="end-deals"><div class="q-end__dh"><hgroup><h2 id="end-deals">کالاهای این دست تخفیف خوردن</h2><p>فقط برای تو تخفیف خوردن!</p></hgroup>` +
     `<button class="q-linkbtn" data-act="deals-end">بیشتر ${ICO('fwd', 16)}</button></div>` +
     (m.dealsState === 'ready' ? `<ul class="q-end__dl">${deals.map(p => dealTile(p)).join('')}</ul>` : `<div class="q-end__dl is-loading" aria-busy="true"><i></i><i></i><i></i></div>`) + '</section>';
   return page('q-end', `<header class="q-hdr q-hdr--bare q-end__hd"><button class="q-iconbtn" data-act="end-close" aria-label="بستن و رفتن به صفحه اصلی">${ICO('x', 22)}</button><span class="q-flex"></span>${balance(m.balance)}</header>` +
@@ -386,7 +416,7 @@ export function vDeals(m) {
   const body = m.state === 'loading' ? `<div class="q-state" role="status">${SPIN}<p>در حال آوردن کالاها…</p></div>`
     : m.state === 'error' ? statecard('alert', 'no', 'کالاها نیومد', 'اتصال رو بررسی کن و دوباره امتحان کن.', PRIMARY('دوباره امتحان کن', ' data-act="deals-retry"', I.refresh))
     : !items.length ? statecard('gift', '', m.played ? 'فعلاً تخفیفی نیست' : 'هنوز کالایی ندیدی', m.played ? 'کالاهایی که توی بازی دیدی الان تخفیف ندارن؛ بعداً سر بزن.' : 'یه دست بازی کن؛ کالاهایی که می‌بینی و تخفیف می‌خورن اینجا جمع می‌شن.', '')
-    : `<p class="q-deals__lead">تا ۹۰ درصد تخفیف روی کالاهایی که توی بازی دیدی</p><ul class="q-deals__list">${items.map(p => dealTile(p, true)).join('')}</ul>`;
+    : `<p class="q-deals__lead">این کالاها فقط برای تو تخفیف خوردن!</p><ul class="q-deals__list">${items.map(p => dealTile(p, true)).join('')}</ul>`;
   return page('q-deals', hdr('کالاهایی که دیدی', 'deals-close', 'بازگشت') + `<main class="q-deals__main">${body}</main>`, toastHTML(m.toast));
 }
 export function codeCard(c, copied) {

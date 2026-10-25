@@ -13,7 +13,7 @@ const STORE = 'pe.play.state.v1';
 
 // LaunchConfig.value() of gheimat-shenas (R-20, R-33, R-41, R-47, brief 2026-10-20, redesign 2026-10-21)
 const CFG = {
-  configVersion: 1, catalogVersion: 1, playsPerDay: 3,
+  configVersion: 1, catalogVersion: 2, playsPerDay: 3,
   inputMs: 10_000, acceptMs: 12_500, offerMs: null, offerAcceptMs: null, paymentResolutionMs: 60_000,
   inactivityMs: 180_000, offerActivationMs: 180_000, timeoutGraceMs: 1_000, checkpointAutoContinueMs: 5_000,
   checkpoints: [

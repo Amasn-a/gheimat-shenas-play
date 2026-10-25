@@ -7,7 +7,7 @@ const rounded = (c,x,y,w,h,r,fill)=>{c.fillStyle=fill;c.beginPath();c.roundRect(
 export async function createShareCard({score,title,badgeAssetId}) {
   await Promise.race([document.fonts?.ready || Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);
   const tier = title ? BADGES.indexOf(badgeAssetId) : -1;   // same-origin badge art only: the canvas never becomes tainted
-  const [logo,hero,mark] = await Promise.all([load('assets/game-logo.webp'),load('assets/home-hero.webp'),tier >= 0 ? load(BADGE_SRC(badgeAssetId)).catch(()=>null) : null]);
+  const [logo,hero,qr,mark] = await Promise.all([load('assets/game-logo.webp'),load('assets/home-hero.webp'),load('assets/share-qr.png').catch(()=>null),tier >= 0 ? load(BADGE_SRC(badgeAssetId)).catch(()=>null) : null]);
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
   const c=canvas.getContext('2d');
   rounded(c,0,0,1080,1350,0,'#fff9f0');
@@ -29,9 +29,11 @@ export async function createShareCard({score,title,badgeAssetId}) {
     rounded(c,640,704,330,376,32,tint);c.lineWidth=3;c.strokeStyle=accent;c.beginPath();c.roundRect(641.5,705.5,327,373,31);c.stroke();
     if(mark)c.drawImage(mark,705,722,200,200);
     rounded(c,662,944,286,112,22,'#ffffff');c.fillStyle='#15162c';let fs=32;do{c.font=`800 ${fs}px Digikala,Tahoma`;}while(c.measureText(title).width>254&&--fs>18);c.fillText(title,805,1012);
-  }else if(!title){c.fillStyle='#cdd2f4';c.font='600 30px Digikala,Tahoma';c.fillText('تو چند تا قیمت رو درست حدس می‌زنی؟',540,1103);}
+  }else if(!title){c.fillStyle='#cdd2f4';c.font='600 30px Digikala,Tahoma';c.fillText('تو چند تا قیمت رو درست حدس می‌زنی؟',540,1090);}
   else{rounded(c,260,1059,560,65,20,'#4055ed');c.fillStyle='#fff';c.font='800 31px Digikala,Tahoma';c.fillText(title,540,1103);}
-  c.fillStyle='#fff';c.font='700 34px Digikala,Tahoma';c.fillText('نوبت توئه؛ بازی کن!',540,1190);
-  c.direction='ltr';c.font='500 23px Arial';c.fillStyle='#cdd2f4';c.fillText(GAME_URL,540,1242);
+  // shortcut: share-qr.png is a pre-made QR of GAME_URL; regenerate it if GAME_URL changes (the Super App build will use its own link)
+  const tx=qr?970:540;if(qr){rounded(c,100,1110,189,189,20,'#ffffff');c.imageSmoothingEnabled=false;c.drawImage(qr,112,1122,165,165);c.imageSmoothingEnabled=true;c.textAlign='right';}
+  c.fillStyle='#fff';c.font='700 38px Digikala,Tahoma';c.fillText('نوبت توئه؛ بازی کن!',tx,1196);
+  c.direction='ltr';c.font='600 29px Arial';c.fillStyle='#cdd2f4';c.fillText(GAME_URL.replace(/^https?:\/\//,'').replace(/\/$/,''),tx,1250);
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG export failed')),'image/png'));
 }

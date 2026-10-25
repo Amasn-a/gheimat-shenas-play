@@ -24,7 +24,7 @@ export const TIER = [['#087f73', '#edf9f5'], ['#3457d5', '#eff3ff'], ['#b96813',
 export function badge(c, i, cls = '', threshold = false) {
   const [a, t] = TIER[Math.min(TIER.length - 1, Math.max(0, i))];
   return `<figure class="q-badgecard ${cls}" style="--badge-accent:${a};--badge-tint:${t}"><span class="q-badgecard__art"><img src="${BADGE_SRC(badgeId(c, i))}" width="512" height="512" alt="" decoding="async"></span>` +
-    `<figcaption><b>${esc(c.title)}</b>${threshold ? `<span>${fa(c.requiredCorrect)} جواب درست</span>` : ''}</figcaption></figure>`;
+    `<figcaption><b>${esc(c.title)}</b>${threshold ? `<span>${fa(c.requiredCorrect)} جواب درست</span><span class="q-badgecard__reward${c.rewardAmount > 0 ? ' is-coin' : ''}">${c.rewardAmount > 0 ? `${fa(c.rewardAmount)} دیجی‌کوین جایزه` : 'فقط نشان'}</span>` : ''}</figcaption></figure>`;
 }
 
 
@@ -338,7 +338,7 @@ export function vLoss(m) {
   const head = m.final ? 'نتیجهٔ این دست' : m.reason === 'timeout' ? 'زمان تموم شد' : 'این بار درست حدس نزدی';
   const sub = m.final ? (m.reason === 'timeout' ? 'زمانت روی آخرین کالا تموم شد.' : m.reason === 'wrong' ? 'آخرین حدست درست نبود.' : '') : '';
   const tier = cp ? `<div class="q-loss__tier"><p>عنوان این دست</p>${badge(cp, m.cpIndex, 'q-loss__badge')}</div>`
-    : m.next ? `<p class="q-loss__goal">با ${fa(m.next.requiredCorrect)} جواب درست، نشان «${esc(m.next.title)}» رو می‌گیری.</p>` : '';
+    : m.next ? `<p class="q-loss__goal">${m.score > 0 ? `${fa(m.next.requiredCorrect - m.score)} جواب درست دیگه تا نشان «${esc(m.next.title)}»!` : `با ${fa(m.next.requiredCorrect)} جواب درست، نشان «${esc(m.next.title)}» رو می‌گیری.`}</p>` : '';
   const best = m.best > m.score ? `<p class="q-loss__best">بهترین رکوردت: ${fa(m.best)}</p>` : m.score > 0 ? '<p class="q-loss__best">این بهترین رکوردته!</p>' : '';
   const home = m.homeLocked ? `<button class="q-btn q-btn--secondary" disabled aria-disabled="true"><span>صفحه اصلی</span><i class="q-btn__i">${I.home}</i></button>`
     : BTN(m.final ? 'q-btn--primary' : 'q-btn--secondary', 'صفحه اصلی', ' data-act="loss-home"', I.home);

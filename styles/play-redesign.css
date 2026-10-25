@@ -148,11 +148,11 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 }
 @media(max-height:740px) and (max-width:899px){
  :root{--gutter:16px}.q-page{gap:8px;padding-top:6px;padding-bottom:max(12px,env(safe-area-inset-bottom))}.q-hdr{min-height:44px}.q-home{gap:10px}.q-home__scroll{gap:8px}.q-record,.q-record--empty{min-height:96px;padding:12px 18px}.q-record b{font-size:34px}.q-record small{font-size:11px}
- .q-home-art{height:60px;max-height:100px;min-height:0}.q-homesheet{gap:6px}.q-homesheet h2{font-size:24px}.q-eyebrow{font-size:11px}.q-hist__hd{min-height:32px;margin-bottom:4px}.q-hist__hd h2{font-size:15px}.q-pcard{padding:8px}.q-pcard .q-img{height:40px;width:44px}.q-pcard__t{font-size:11px}.q-hist__empty{padding:12px}
+ .q-home-art{height:60px;max-height:100px;min-height:0}.q-homesheet{gap:6px}.q-homesheet h2{font-size:24px}.q-eyebrow{font-size:11px}.q-hist__hd{min-height:32px;margin-bottom:4px}.q-hist__hd h2{font-size:15px}.q-pcard{padding:8px}.q-pcard .q-img{height:40px;width:44px}.q-pcard__t{font-size:12px}.q-hist__empty{padding:12px}
  .q-track{height:45px}.q-track__ic{height:32px}.q-track__line{top:15px}.q-timer{min-height:40px;padding-block:5px 8px}.q-timer__n{font-size:23px}.q-game__main{gap:8px;min-height:230px}.q-ref,.q-ref--strip{min-height:90px;padding:8px 12px;gap:10px}.q-ref .q-img{width:60px;height:60px}.q-ref__t{font-size:14px;line-height:1.5}.q-ref .q-price b{font-size:23px}.q-label{font-size:12px}.q-ref__b{gap:1px}
  .q-cmp{min-height:155px;padding:8px 12px;gap:2px}.q-cmp__t{font-size:14px;line-height:1.5}.q-cmp .q-img{min-height:42px;max-height:100px}.q-cmp .q-price b{font-size:23px}.q-cmp .q-price{min-height:28px}.q-cmp__hint{font-size:12px}.q-decide{gap:2px}.q-prompt{font-size:14px;min-height:20px}.q-ab{min-height:50px;font-size:17px}.q-invite{min-height:150px;padding:12px}.q-invite h2{font-size:20px}.q-invite__tag{height:34px;width:25px}.q-invite .q-btn{min-height:48px;margin-top:6px}
  .q-loss{gap:6px}.q-loss__main{gap:6px}.q-loss__badge{width:56px}.q-loss__h{font-size:22px}.q-loss__score b{font-size:44px}.q-loss__score span{font-size:15px}.q-loss__act .q-btn{min-height:46px;font-size:16px}.q-recap{gap:2px;padding-top:6px}.q-recap__row{font-size:13px}.q-recap__why{font-size:13px}.q-cost{font-size:12px}
- .q-cp__badge{width:180px}.q-cp__h{font-size:28px}.q-cp__in{gap:6px}.q-demo{padding:12px}.q-demo-art{height:70px}.q-demo-top{margin-bottom:10px}.q-demo-answers{margin-top:10px}.q-demo-caption{min-height:0}.q-demo-caption h2{font-size:19px}.q-demo-caption p{font-size:14px;line-height:1.7}.q-tutorial{gap:8px}.q-demo-controls{gap:4px 6px}.q-demo-dot{min-width:40px}.q-demo-card h3{font-size:13px}.q-onb--lesson .q-foot{gap:2px}.q-onb--lesson .q-foot .q-btn{min-height:46px;font-size:16px}.q-onb--lesson .q-foot .q-btn--text{min-height:40px;font-size:13px}
+ .q-cp__badge{width:180px}.q-cp__h{font-size:28px}.q-cp__in{gap:6px}.q-demo{padding:12px}.q-demo-art{height:70px}.q-demo-top{margin-bottom:10px}.q-demo-answers{margin-top:10px}.q-demo-caption{min-height:0}.q-demo-caption h2{font-size:19px}.q-demo-caption p{font-size:14px;line-height:1.7}.q-tutorial{gap:8px}.q-demo-controls{gap:4px 6px}.q-demo-dot{min-width:40px}.q-demo-card h3{font-size:13px}.q-onb--lesson .q-foot{gap:2px}.q-onb--lesson .q-foot .q-btn{min-height:46px;font-size:16px}.q-onb--lesson .q-foot .q-btn--text{min-height:44px;font-size:13px}
  .q-onb2 h1{font-size:24px}.q-gsec{padding:10px;gap:10px}.q-gsec h2{font-size:15px}.q-gsec p{font-size:12px}.q-guide__body{gap:10px}.q-gart{width:40px;height:40px}
 }
 @media(max-width:374px){.q-brand{gap:6px}.q-brand b{font-size:17px}.q-guidebtn{font-size:12px}.q-home>.q-hdr{gap:4px}.q-bal{padding-inline:8px;gap:4px}.q-bal b{font-size:15px}.q-logo--s{width:23px;height:34px}.q-demo-dot{min-width:38px}.q-demo-pause{padding-inline:8px}}
@@ -181,7 +181,8 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 }
 @media(prefers-reduced-motion:reduce){.q-demo *{animation:none!important;transition:none!important}}
 /* Accessibility fallback: unusually short viewports/large browser zoom may scroll rather than lose text or actions. */
-@media(max-height:550px){.q-game__main{flex:none;min-height:300px}.q-home__scroll,.q-homesheet{flex:none}.q-home-art{height:70px;flex:none}.q-page{overflow:auto}.q-tutorial{flex:none}.q-loss__main{flex:none}.q-onb2{flex:none}}
+@media(max-height:500px){.q-game__main{flex:none;min-height:300px}}
+@media(max-height:550px){.q-home__scroll,.q-homesheet{flex:none}.q-home-art{height:70px;flex:none}.q-page{overflow:auto}.q-tutorial{flex:none}.q-loss__main{flex:none}.q-onb2{flex:none}}
 .pe-dev #app{width:100%!important;height:100dvh!important;max-width:1440px!important;top:0!important;left:auto!important;right:auto!important;border-radius:0!important;box-shadow:none!important}
 .pe-devpanel{left:8px!important;top:auto!important;bottom:8px!important;width:300px!important}
 
@@ -225,3 +226,13 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 /* the last comparison supports the result: compact prices, ordinary weight, the run score stays dominant */
 .q-recap__row .q-price b,.q-recap .q-price b{font-size:15px;font-weight:700}.q-recap__row .q-price small{font-size:12px}.q-recap h2{font-size:13px}
 @media(min-width:900px){.q-recap__row .q-price b,.q-recap .q-price b{font-size:16px}}
+/* device audit 2026-10-25 (Samsung / iPhone): safe areas, short Safari viewports, 320px, touch targets, 12px text floor */
+.q-cp{padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom))}
+@media(max-width:899px){.q-sheet{padding-bottom:max(24px,calc(env(safe-area-inset-bottom) + 12px))}}
+@media(max-height:740px) and (max-width:899px){.q-page{padding-top:max(6px,env(safe-area-inset-top))}}
+.q-demo-nav,.q-demo-dot{flex:none;min-width:44px;min-height:44px}.q-demo-pause{white-space:nowrap;min-height:44px}
+.q-stack b{font-size:12px;min-width:20px;line-height:20px}.q-demo-card small,.q-record small,.q-eyebrow{font-size:12px}
+.q-badgecard__reward{font-weight:700}.q-badgecard__reward.is-coin{color:#b45309}
+.q-share h2{padding-inline:40px}
+@media(max-width:374px){.q-share-actions{grid-template-columns:1fr}.q-demo-dots{gap:4px}.q-demo-pause{white-space:normal}}
+@media(max-height:600px){.q-demo-caption,.q-tutorial{flex-shrink:0}}   /* e.g. 320×590: the lesson scrolls instead of squeezing its caption under the controls and the footer */

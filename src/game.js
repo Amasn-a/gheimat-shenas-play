@@ -236,6 +236,8 @@ export function render() {
   if (S.ui.share) { screenEl.querySelector('.q-page')?.setAttribute('inert',''); screenEl.insertAdjacentHTML('beforeend',V.shareModal(S.ui.share)); }
   const same = focusAct && [...screenEl.querySelectorAll('[data-act]')].find(e=>e.dataset.act===focusAct && e.dataset.step===focusStep && !e.disabled);
   if (same) same.focus({preventScroll:true});
+  // the answered buttons are gone, so focus would fall to <body>: hand it to «نشان بده» so a keyboard player can continue
+  else if (!S.ui.cp && (!document.activeElement || document.activeElement === document.body)) screenEl.querySelector('[data-act="reveal"]:not([disabled])')?.focus({preventScroll:true});
   const dialog = root.querySelector('[role="dialog"]');
   if (dialog && !dialog.contains(document.activeElement)) requestAnimationFrame(()=>dialog.querySelector('button:not([disabled])')?.focus({preventScroll:true}));
   root.dataset.view = stateId();

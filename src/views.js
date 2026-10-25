@@ -109,6 +109,7 @@ const DEALS_BANNER = `<button class="q-dealbanner" data-act="deals" aria-label="
  * دیجی‌کوین‌های من) · record and streak side by side · the deals banner · the start sheet.
  */
 export function vHome(v, m) {
+  if (light()) return vHomeLight(v, m);
   const b = m.boot;
   const top = `<header class="q-hdr q-hdr--home"><button class="q-iconbtn" data-act="exit-app" aria-label="بازگشت به اپ">${I.back}</button>` +
     `<h1 class="q-brand">قیمت‌شناس</h1><span class="q-flex"></span>${balance(m.balance)}</header>`;
@@ -129,6 +130,46 @@ export function vHome(v, m) {
 }
 const feature = (m, k) => !m.boot.config.features || m.boot.config.features[k] !== false;
 
+// ---------------------------------------------------------------- light variant (?ui=light; owner 2026-10-25, after his mobile-shell reference)
+/** The light variant is opt-in (?ui=light, set on #app as .gl); the blue design stays the default and is untouched. */
+export const light = () => typeof document !== 'undefined' && !!document.getElementById('app')?.classList.contains('gl');
+const streakOf = m => (m.boot && m.boot.dailyReward && m.boot.dailyReward.streakDays) || 0;
+const TABS = [['home', 'بازی', 'home'], ['coins', 'جوایز', 'history'], ['badges', 'نشان‌ها', 'trophy'], ['deals', 'کالاها', 'bag']];
+/** Shell of the four tabs: top bar, three stat chips, the tab's panel, the bottom tab bar. */
+function lshell(tab, m, content, extra = '') {
+  const b = m.boot || {}, cps = (b.config && b.config.checkpoints) || [];
+  const got = cps.filter(c => (b.record || 0) >= c.requiredCorrect).length;
+  const top = `<header class="l-top"><button class="q-iconbtn l-icon" data-act="exit-app" aria-label="بازگشت به اپ">${I.back}</button>` +
+    `<h1 class="l-brand"><img src="assets/game-logo.webp" width="28" height="28" alt="">قیمت‌شناس</h1><span class="q-flex"></span>${balance(m.balance)}` +
+    `<button class="q-iconbtn l-icon" data-act="guide" aria-label="راهنمای بازی">${ICO('help', 22)}</button></header>`;
+  const chip = (act, ic, v, l, cls) => `<button class="l-chip ${cls}" data-act="${act}"><span class="l-chip__i" aria-hidden="true">${ic}</span><span><b>${v}</b><small>${l}</small></span>${ICO('fwd', 14)}</button>`;
+  const chips = `<div class="l-chips">${chip('tab-badges', ICO('trophy', 20), `${fa(b.record || 0)} جواب`, 'رکوردت', 'is-record')}` +
+    chip('tab-coins', ICO('fire', 20), `${fa(streakOf(m))} روز`, 'پشت‌سرهم', 'is-streak') + chip('tab-badges', `<img src="${BADGE_SRC(BADGES[0])}" width="28" height="28" alt="">`, `${fa(got)} از ${fa(cps.length)}`, 'نشان‌هات', 'is-coin') + '</div>';
+  const nav = `<nav class="l-nav" aria-label="بخش‌های بازی">${TABS.map(([k, t, ic]) => `<button data-act="tab-${k}"${k === tab ? ' aria-current="page"' : ''}><span>${ICO(ic, 22)}</span><small>${t}</small></button>`).join('')}</nav>`;
+  return page(`l-shell l-shell--${tab}`, top + `<main class="l-main">${chips}${content}</main>` + nav, (extra || '') + toastHTML(m.toast));
+}
+function vHomeLight(v, m) {
+  const b = m.boot;
+  const o = b.activeRun && !b.activeRun.onThisDevice ? b.activeRun : null;
+  const note = o ? status('warn', `یه دست روی دستگاه دیگه‌ات بازه. با شروع دست جدید، اون دست با ${fa(o.score)} جواب درست تموم می‌شه.`, 'devices') : '';
+  const hero = `<section class="l-play"><span class="l-pill">یه حدس تا هیجان!</span><h2>گرون‌تره<br><em>یا ارزون‌تر؟</em></h2><p class="l-play__sub">شم اقتصادیت رو به چالش بکش!</p>` +
+    `<div class="l-play__art"><img src="assets/home-hero.webp" width="919" height="667" alt="" decoding="async"><span class="l-tag is-up">${ICO('up', 14)}گرون‌تره</span><span class="l-tag is-down">${ICO('down', 14)}ارزون‌تره</span></div>` +
+    `<p class="l-play__line">حدس بزن، رکورد بزن، دیجی‌کوین بگیر!</p>${note}${homeSheet(v, m)}</section>`;
+  return lshell('home', m, hero, m.modal);
+}
+/** G14.BADGES «نشان‌های تو» (light variant tab): the four checkpoint badges, earned or locked, and the next goal. */
+export function vBadges(m) {
+  const b = m.boot, cps = b.config.checkpoints, rec = b.record || 0;
+  const next = cps.find(c => c.requiredCorrect > rec);
+  const tiles = cps.map((c, i) => { const on = rec >= c.requiredCorrect;
+    return `<li class="l-badge${on ? ' is-on' : ''}"><span class="l-badge__lock" aria-hidden="true">${on ? ICO('check', 14) : ICO('lock', 14)}</span>` +
+      `<img src="${BADGE_SRC(badgeId(c, i))}" width="512" height="512" alt="${esc(c.title)}" decoding="async"><b>${fa(c.requiredCorrect)} جواب درست</b>` +
+      `<small>${c.rewardAmount > 0 ? `${COIN}${fa(c.rewardAmount)} دیجی‌کوین جایزه` : 'اولین نشان تو'}</small></li>`; }).join('');
+  return lshell('badges', m, `<section class="l-panel"><div class="l-ph"><small>از قیمت‌شناس تا تاجر</small><h2>نشان‌های تو</h2></div>` +
+    `<div class="l-best">${ICO('trophy', 26)}<span><small>بهترین رکوردت</small><b>${fa(rec)} جواب درست پشت‌سرهم</b></span></div><ul class="l-badges">${tiles}</ul>` +
+    `<p class="l-next">${next ? `${fa(next.requiredCorrect - rec)} جواب درست تا نشان ${esc(next.title)}` : 'همه‌ی نشان‌ها رو گرفتی!'}</p></section>`);
+}
+
 /** G13.COINS «تاریخچه جوایز» — the player's DigiCoin history (owner 2026-10-25; layout after five-second-rush «جایزه‌های شما»). Data simulated in Play. */
 export function vCoins(m) {
   const sum = `<section class="q-coins__sum"><span>موجودی دیجی‌کوین</span><b>${COIN}${m.balance == null ? '—' : fa(m.balance)}</b></section>`;
@@ -139,6 +180,8 @@ export function vCoins(m) {
     : `<ul class="q-coins__list">${m.items.map(x => `<li class="${x.amount < 0 ? 'is-out' : 'is-in'}"><span class="q-coins__ic">${x.amount < 0 ? ICO('replay', 20) : COIN}</span>` +
       `<span class="q-coins__t"><b>${esc(x.label)}</b><small>${when(x.at)}${x.status === 'pending' ? ' · در حال واریز' : ''}</small></span>` +
       `<b class="q-coins__a" dir="ltr">${x.amount < 0 ? '−' : '+'}${fa(Math.abs(x.amount))}</b></li>`).join('')}</ul>`;
+  if (light()) return lshell('coins', m, `<section class="l-panel"><div class="l-ph"><small>هر جواب درست یه قدم نزدیک‌تر</small><h2>جایزه‌های تو</h2></div>${sum}` +
+    `<button class="l-row" data-act="tab-badges">${ICO('fire', 20)}<span>${fa(streakOf(m))} روز پشت‌سرهم · حضور روزانه</span>${ICO('fwd', 18)}</button><h3 class="l-h3">تاریخچه‌ی دریافت‌ها</h3>${body}</section>`);
   return page('q-coins', hdr('تاریخچه جوایز', 'coins-close', 'بازگشت') + `<main class="q-coins__main">${sum}${body}` +
     `<button class="q-coins__faq" data-act="coins-guide">${ICO('help', 20)}<span>راهنمای بازی</span>${ICO('fwd', 18)}</button></main>`, toastHTML(m.toast));
 }
@@ -417,6 +460,8 @@ export function vDeals(m) {
     : m.state === 'error' ? statecard('alert', 'no', 'کالاها نیومد', 'اتصال رو بررسی کن و دوباره امتحان کن.', PRIMARY('دوباره امتحان کن', ' data-act="deals-retry"', I.refresh))
     : !items.length ? statecard('gift', '', m.played ? 'فعلاً تخفیفی نیست' : 'هنوز کالایی ندیدی', m.played ? 'کالاهایی که توی بازی دیدی الان تخفیف ندارن؛ بعداً سر بزن.' : 'یه دست بازی کن؛ کالاهایی که می‌بینی و تخفیف می‌خورن اینجا جمع می‌شن.', '')
     : `<p class="q-deals__lead">این کالاها فقط برای تو تخفیف خوردن!</p><ul class="q-deals__list">${items.map(p => dealTile(p, true)).join('')}</ul>`;
+  if (light() && m.fromHome) return lshell('deals', m, `<section class="l-panel"><div class="l-ph"><small>کالاهایی که توی بازی دیدی</small><h2>کشف تخفیف‌ها</h2></div>` +
+    `<div class="l-promo"><b>تا ۹۰٪ تخفیف</b><span>این کالاها فقط برای تو تخفیف خوردن!</span></div>${body.replace('<p class="q-deals__lead">این کالاها فقط برای تو تخفیف خوردن!</p>', '')}</section>`);
   return page('q-deals', hdr('کالاهایی که دیدی', 'deals-close', 'بازگشت') + `<main class="q-deals__main">${body}</main>`, toastHTML(m.toast));
 }
 export function codeCard(c, copied) {

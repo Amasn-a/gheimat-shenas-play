@@ -58,7 +58,8 @@ function screen() {
   if (v.startsWith('G01.')) return homeScreen();
   if (v === 'G02.GUIDE') return V.vGuide({ config: cfg(), demo: !!S.ui.guideTour, still: motion.reducedMotion() });
   if (v === 'G12.DEALS') return dealsScreen();
-  if (v === 'G13.COINS') return V.vCoins({ ...(S.coins || { state: 'loading', items: [] }), balance: S.balance, toast: S.ui.toast });
+  if (v === 'G13.COINS') return V.vCoins({ ...(S.coins || { state: 'loading', items: [] }), boot: S.boot, balance: S.balance, toast: S.ui.toast });
+  if (v === 'G14.BADGES') return V.vBadges({ boot: S.boot, balance: S.balance, toast: S.ui.toast });
   if (v === 'G02.ONBOARDING') return onboardScreen();
   if (v === 'G03.LOADING') return loadingRun();
   if (['G03.READY', 'G03.PREPARING', 'G03.COUNTDOWN', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
@@ -169,7 +170,8 @@ function endScreen() {
 function dealsScreen() {
   const fromEnd = S.ui.dealsSrc === 'end';
   const src = fromEnd ? S.end : { state: { ready: 'ready', none: 'ready', error: 'error' }[S.home.state] || 'loading', products: S.home.products };
-  return V.vDeals({ deals: V.dealsOf(src && src.products), state: src ? src.state : 'ready', played: fromEnd || !!(S.boot && S.boot.lastRunId), toast: S.ui.toast });
+  return V.vDeals({ deals: V.dealsOf(src && src.products), state: src ? src.state : 'ready', played: fromEnd || !!(S.boot && S.boot.lastRunId), toast: S.ui.toast,
+    fromHome: !fromEnd, boot: S.boot, balance: S.balance });
 }
 async function loadEndDeals(runId) {
   S.end = { runId, state: 'loading', products: null };
@@ -184,7 +186,7 @@ function openDeals(src) {
 }
 /** G13.COINS: the DigiCoin history, read fresh each time it opens (simulated ledger in Play). */
 async function openCoins() {
-  if (S.view !== 'G13.COINS') S.ui.coinsFrom = S.view;
+  if (S.view !== 'G13.COINS' && !S.ui.coinsFrom) S.ui.coinsFrom = S.view;
   S.coins = { state: 'loading', items: [] };
   host.setBackHandler(() => { if (S.view === 'G13.COINS') { closeCoins(); return true; } return false; });
   go('G13.COINS');
@@ -1170,6 +1172,11 @@ function onClick(e) {
     'onb-start': finishOnboarding,   // owner 2026-10-25 evening: the tour ends on the home page, never straight into a run
     'onb-rules': () => { S.ui.guideTour = false; openGuide(); },
     'offer-skip': skipOffer, 'end-close': lossHome, 'end-home': lossHome,
+    // light variant: the four tabs (home, rewards history, badges, deals); every tab's back returns to home
+    'tab-home': () => { host.setBackHandler(null); S.ui.dealsFrom = S.ui.coinsFrom = null; go('G01.READY'); },
+    'tab-coins': () => { S.ui.coinsFrom = 'G01.READY'; openCoins(); },
+    'tab-badges': () => { host.setBackHandler(() => { if (S.view === 'G14.BADGES') { go('G01.READY'); host.setBackHandler(null); return true; } return false; }); go('G14.BADGES'); },
+    'tab-deals': () => { openDeals('home'); S.ui.dealsFrom = 'G01.READY'; },
     coins: openCoins, 'coins-retry': openCoins, 'coins-close': closeCoins, 'coins-guide': () => { closeCoins(); S.ui.guideTour = false; openGuide(); },
     deals: () => openDeals('home'), 'deals-end': () => openDeals('end'), 'deals-close': closeDeals,
     'deals-retry': () => { if (S.ui.dealsSrc === 'end' && S.end) { loadEndDeals(S.end.runId); render(); } else { const id = S.home.runId || (S.boot && S.boot.lastRunId); S.home.runId = null; S.home.state = 'loading'; render(); loadHistory(id); } },

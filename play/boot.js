@@ -6,6 +6,8 @@ import { configureHost } from '../src/host.js';
 import { install, API_ORIGIN, setCatalog, net, reviewer } from './server.js';
 
 const app = document.getElementById('app');
+// «دیزاین ۲», the light variant (owner 2026-10-25): ?ui=2 (play/entry.js asks first); «دیزاین ۱» is the blue design
+if (['2', 'light'].includes(new URLSearchParams(location.search).get('ui'))) { app.classList.add('gl'); document.documentElement.classList.add('ui-light'); }
 const rev = document.documentElement.dataset.source || '';
 
 window.PE_API_BASE = API_ORIGIN;

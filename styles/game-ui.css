@@ -741,3 +741,16 @@ body #app.gu, body.pe-play #app.gu, body.pe-play:not(.pe-dev) #app.gu, .pe-dev #
 .gu .q-guide__body { overflow-y: auto; align-content: safe center; }
 @media (max-height: 740px) { .gu .q-gsec { padding: 10px 12px; gap: 10px; } .gu .q-gart { width: 44px; height: 44px; border-radius: 12px; } .gu .q-gart--badges img { width: 38px; height: 38px; } }
 .gu .q-days li.is-today:not(.is-on) .q-day__c { background: var(--gu-yellow); color: var(--gu-yellow-ink); }
+
+/* entry: «دیزاین ۱» or «دیزاین ۲» (owner 2026-10-25) */
+html.picking, html.picking body { background: linear-gradient(180deg, #1A47B5, #0B1F5E) fixed !important; min-height: 100dvh; }
+body #app.pick { min-height: 100dvh; display: grid; place-items: center; padding: 16px; background: transparent !important; font-family: var(--font); color: #fff; }
+.pick__in { width: min(100%, 460px); display: grid; justify-items: center; gap: 14px; text-align: center; }
+.pick__logo { width: min(220px, 56vw); height: auto; }
+.pick__in h1 { margin: 0; font-size: 22px; font-weight: 900; }
+.pick__opts { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pick__opts button { display: grid; justify-items: center; gap: 6px; padding: 10px 10px 14px; border: 0; border-radius: 22px; background: #fff; color: #233F35; font: inherit; cursor: pointer; box-shadow: 0 4px 0 #0A1640; }
+.pick__opts button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0A1640; }
+.pick__opts img { width: 100%; height: auto; border-radius: 14px; }
+.pick__opts b { font-size: 18px; font-weight: 900; }
+.pick__opts small { font-size: 13px; color: #5B6B60; }

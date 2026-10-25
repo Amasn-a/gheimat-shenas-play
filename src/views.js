@@ -11,7 +11,7 @@ const L = ' disabled aria-disabled="true"';
 const ICO = (k, s = 20) => I[k].replace('width="24" height="24"', `width="${s}" height="${s}"`);
 const SPIN = '<span class="q-spin" aria-hidden="true"></span>';
 /** Official DigiCoin asset downloaded from Digikala's own static asset endpoint. */
-export const COIN = '<img class="q-coin" src="assets/digicoin.svg" width="24" height="23" alt="" aria-hidden="true">';
+export const COIN = '<img class="q-coin" src="assets/digicoin-game.svg" width="24" height="23" alt="" aria-hidden="true">';
 export const TAG = '<img class="q-logomark" src="assets/game-logo.webp" width="40" height="56" alt="" aria-hidden="true">';
 // ?v=2: the 2026-10-25 artwork reuses the old file names, so a cached old badge is never mistaken for the new one
 export const BADGE_SRC = id => `assets/badges/${encodeURIComponent(id)}.webp?v=2`;
@@ -183,7 +183,7 @@ export function vGuide(m) {
 export function tutorial(step = 0, paused = true, still = false) {
   const captions = [
     ['کالای اول: قیمتش معلومه', 'ماگ سرامیکی ۲۴۵٬۰۰۰ تومنه. این قیمت مرجع توئه.'],
-    ['کالای دوم: قیمتش مخفیه', 'با زدن «نشان بده» کالای دوم میاد و ۱۰ ثانیه وقت داری.'],
+    ['کالای دوم: قیمتش مخفیه', '۵ ثانیه بعد خودش میاد (با «نشان بده» زودتر) و ۱۰ ثانیه وقت داری.'],
     ['گرون‌تره یا ارزون‌تر؟', 'هدفون از ۲۴۵٬۰۰۰ تومن گرون‌تره؟ اینجا «گرون‌تره» رو می‌زنیم.'],
     ['درست بود؛ یک امتیاز!', 'هدفون ۸۹۰٬۰۰۰ تومنه، پس «گرون‌تره» درست بود.'],
     ['هدفون، کالای اول بعدی می‌شه', 'حالا کتری رو با قیمت هدفون مقایسه می‌کنی.'],
@@ -199,8 +199,8 @@ export function tutorial(step = 0, paused = true, still = false) {
   const play = still ? '' : `<button class="q-demo-pause" data-act="demo-toggle" aria-pressed="${!paused}">${ICO(paused ? 'play' : 'pause', 18)}<span>${paused ? 'پخش خودکار' : 'توقف'}</span></button>`;
   return `<section class="q-tutorial" aria-label="نمایش آموزشی بازی"><div class="q-demo${paused ? ' is-paused' : ''}" data-step="${step}" aria-hidden="true">` +
     `<div class="q-demo-top"><b>یک مقایسهٔ تمرینی</b><span>${top}</span></div><div class="q-demo-cards">` +
-    `<article class="q-demo-card q-demo-first"><span>کالای اول</span><div class="q-demo-art">${first.a}</div><h3>${first.t}</h3><b>${first.p} <small>تومان</small></b></article>` +
-    `<i class="q-demo-versus">${I.fwd}</i><article class="q-demo-card q-demo-second${step === 0 ? ' is-hidden' : ''}"><span>کالای دوم</span><div class="q-demo-art">${second.a}</div><h3>${second.t}</h3><b>${second.p} <small>تومان</small></b></article></div>` +
+    `<article class="q-demo-card q-demo-first"><div class="q-demo-art">${first.a}</div><h3>${first.t}</h3><b>${first.p} <small>تومان</small></b></article>` +
+    `<i class="q-demo-versus">${I.fwd}</i><article class="q-demo-card q-demo-second${step === 0 ? ' is-hidden' : ''}"><div class="q-demo-art">${second.a}</div><h3>${second.t}</h3><b>${second.p} <small>تومان</small></b></article></div>` +
     `<div class="q-demo-answers"><span class="${step === 2 || step === 3 ? 'is-chosen' : ''}">${step === 3 ? '✓ درست گفتی' : '↑ گرون‌تره'}</span><span>↓ ارزون‌تره</span></div></div>` +
     `<div class="q-demo-caption"><h2>${h}</h2><p>${p}</p></div>` +
     `<div class="q-demo-controls"><div class="q-demo-step">${nav}${play}</div><div class="q-demo-dots" role="group" aria-label="رفتن به مرحله">${dots}<button class="q-demo-pause" data-act="demo-replay" aria-label="از اول">${ICO('replay', 20)}</button></div></div></section>`;
@@ -241,31 +241,43 @@ export function track(score, cps) {
     `<div class="q-track__line"><i style="--f:${f.toFixed(4)}"></i></div><ol aria-hidden="true">${nodes}</ol></div>`;
 }
 /**
- * Timer above the decision area (§7): large fixed-width number on a contrasting plate with a draining line.
- * mode: idle (before «نشان بده») · run · low (last 3 s) · zero (visible window over, server recording it) · busy (answer
- * sent) · done (answered; the verdict lives in the decision area).
+ * Timer plate above the products (§7): the words on the right, the seconds on the left in a pulsing cap, no bar.
+ * mode: idle · run · low (last 3 s: only the digits and their ring turn red) · zero · busy (answer sent) ·
+ * verdict (owner 2026-10-26: the result shows here, in place of the seconds, until the next question).
  */
 export function timer(o) {
-  const mode = o.mode, n = mode === 'idle' ? fa(10) : mode === 'zero' ? fa(0) : o.t;
-  const lab = { idle: 'ثانیه وقت داری', run: 'ثانیه وقت داری', low: 'وقت داره تموم می‌شه', zero: 'زمان تموم شد', busy: 'در حال بررسی پاسخ...', done: 'جوابت ثبت شد' }[mode];
-  const num = mode === 'busy' ? SPIN : mode === 'done' ? `<span class="q-timer__ok">${ICO('check', 26)}</span>` : `<b class="q-timer__n">${n}</b>`;
+  const mode = o.mode;
+  if (mode === 'verdict') {
+    const ic = { ok: 'check', no: 'x', time: 'clock' }[o.kind];
+    return `<div class="q-timer is-verdict is-${o.kind}" data-tour="timer" role="status"><span class="q-timer__l"><b>${o.title}</b>${o.sub ? `<span>${o.sub}</span>` : ''}</span>` +
+      `<span class="q-timer__n q-timer__v${o.pop ? ' q-pop-once' : ''}" aria-hidden="true">${ICO(ic, 24)}</span></div>`;
+  }
+  const n = mode === 'idle' ? fa(10) : mode === 'zero' ? fa(0) : o.t;
+  const lab = { idle: 'ثانیه وقت داری', run: 'ثانیه وقت داری', low: 'وقت داره تموم می‌شه', zero: 'زمان تموم شد', busy: 'در حال بررسی پاسخ...' }[mode];
+  const num = mode === 'busy' ? `<span class="q-timer__n">${SPIN}</span>` : `<b class="q-timer__n">${n}</b>`;
   const live = mode === 'run' || mode === 'low';
-  return `<div class="q-timer is-${mode}" data-tour="timer" ${live ? 'role="timer" data-timer' : 'role="status"'} aria-label="${mode === 'zero' || mode === 'done' ? lab : mode === 'busy' ? 'در حال بررسی پاسخ' : `${n} ${lab}`}" style="--p:${o.p == null ? 1 : o.p}">` +
-    `${num}<span class="q-timer__l">${lab}</span><i class="q-timer__bar" aria-hidden="true"></i></div>`;
+  return `<div class="q-timer is-${mode}" data-tour="timer" ${live ? 'role="timer" data-timer' : 'role="status"'} aria-label="${mode === 'zero' ? lab : mode === 'busy' ? 'در حال بررسی پاسخ' : `${n} ${lab}`}">` +
+    `<span class="q-timer__l">${lab}</span>${num}</div>`;
 }
 export function refCard(card, strip) {
   const k = keyOf(card);
   return `<article class="q-ref${strip ? ' q-ref--strip' : ''}" aria-label="کالای اول، ${money(card.price)} تومان"${mk('card:' + k, 'frame')} data-tour="first">${img(card, true)}` +
-    `<div class="q-ref__b"><span class="q-label">کالای اول</span><h2 class="q-ref__t"${mk('ttl:' + k, 'text')}>${title(card.displayTitle)}</h2>${price(card.price, '', mk('prc:' + k, 'text'))}</div></article>`;
+    `<div class="q-ref__b"><h2 class="q-ref__t"${mk('ttl:' + k, 'text')}>${title(card.displayTitle)}</h2>${price(card.price, '', mk('prc:' + k, 'text'))}</div></article>`;
 }
-/** Before «نشان بده»: the invitation card; the comparison product is chosen by the server only after the tap. */
-export function revealCard(state, goal = '') {
-  const busy = state === 'busy', failed = state === 'failed', off = state === 'off';
-  const t = failed ? 'کالا آماده نشد' : busy ? 'کالای بعدی آماده می‌شه…' : 'آماده‌ای مقایسه کنی؟';
-  const p = failed ? 'امتیاز و زمانت سالمه؛ دوباره امتحان کن.' : off ? 'اتصال قطع شد. هنوز سؤالی شروع نشده؛ دستت محفوظه.' : busy ? '' : 'با زدن «نشان بده»، زمان پاسخ شروع می‌شه.';
-  const b = busy ? BUSY('نشان بده') : off ? `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>در انتظار اتصال…</span></button>`
-    : PRIMARY(failed ? 'دوباره امتحان کن' : 'نشان بده', ' data-act="reveal" data-tour="reveal"', failed ? I.refresh : I.play);
-  return `<section class="q-invite${failed ? ' is-failed' : ''}"${mk('slot', 'fade')} aria-labelledby="inv-t"><span class="q-invite__tag" aria-hidden="true">${TAG}</span><h2 id="inv-t">${t}</h2>${p ? `<p>${p}</p>` : ''}${b}${goal && !failed ? `<p class="q-invite__goal">${goal}</p>` : ''}</section>`;
+/**
+ * Between questions (owner 2026-10-26): «نشان بده» fills over the 5 s lead and the next product then shows by itself; a tap
+ * shows it at once. state: wait (asking for the next product) · count ({total, left} ms) · failed · off.
+ */
+export function revealCard(state, lead) {
+  const failed = state === 'failed', off = state === 'off';
+  const t = failed ? 'کالا آماده نشد' : 'آماده‌ای مقایسه کنی؟';
+  const p = failed ? 'امتیاز و زمانت سالمه؛ دوباره امتحان کن.' : off ? 'اتصال قطع شد. هنوز سؤالی شروع نشده؛ دستت محفوظه.' : '';
+  const fill = state === 'count' && lead ? ` style="--lead-total:${lead.total}ms;--lead-delay:${lead.left - lead.total}ms"` : '';
+  const b = off ? `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>در انتظار اتصال…</span></button>`
+    : failed ? PRIMARY('دوباره امتحان کن', ' data-act="reveal" data-tour="reveal"', I.refresh)
+    : `<button class="q-btn q-btn--primary q-btn--lead${state === 'count' ? ' is-counting' : ''}" data-act="reveal" data-tour="reveal" aria-label="نشان بده؛ کالای بعدی خودکار نشون داده می‌شه"${fill}>` +
+      `<i class="q-btn__fill" aria-hidden="true"></i><span>نشان بده</span><i class="q-btn__i">${I.play}</i></button>`;
+  return `<section class="q-invite${failed ? ' is-failed' : ''}"${mk('slot', 'fade')} aria-labelledby="inv-t"><span class="q-invite__tag" aria-hidden="true">${TAG}</span><h2 id="inv-t">${t}</h2>${p ? `<p>${p}</p>` : ''}${b}</section>`;
 }
 /** Comparison product. Its price is never in the page before the answer; afterwards the server's revealed price fills the same row. */
 export function cmpCard(card, st, revealedPrice, slow) {
@@ -276,7 +288,7 @@ export function cmpCard(card, st, revealedPrice, slow) {
     : price(revealedPrice, ' q-price--reveal', mk('prc:' + k, 'text'));
   const hint = slow ? '<p class="q-cmp__hint">عکس در راهه؛ از روی اسم هم می‌تونی جواب بدی.</p>' : '';
   return `<article class="q-cmp${cls}" aria-label="کالای دوم${st === 'hidden' ? '، قیمت مخفی' : `، ${money(revealedPrice)} تومان`}"${mk('card:' + k, 'frame')} data-tour="second">` +
-    `<span class="q-label">کالای دوم</span><h2 class="q-cmp__t"${mk('ttl:' + k, 'text')}>${title(card.displayTitle)}</h2>${img(card, true, st === 'hidden' ? 'q' : '')}${hint}${row}</article>`;
+    `${img(card, true, st === 'hidden' ? 'q' : '')}<h2 class="q-cmp__t"${mk('ttl:' + k, 'text')}>${title(card.displayTitle)}</h2>${hint}${row}</article>`;
 }
 /**
  * Decision area: the prompt (or, after the server's verdict, the verdict in the same place) and the two answers at a
@@ -293,7 +305,7 @@ export function decide(st, side, line, refPrice) {
   else if (st === 'truth') { me.cls = ' is-truth'; me.a = L; me.i = ok; me.m = 'جواب درست'; ot.cls = ' is-dim'; ot.a = L; }
   const rp = st === 'on' && refPrice ? money(refPrice) : '';
   const btn = (o, w) => `<button class="q-ab${o.cls}"${o.a}${rp ? ` aria-label="${w} از ${rp} تومان"` : ''}><span>${w}${o.m ? `<small class="pe-sr">، ${o.m}</small>` : ''}</span><i class="q-ab__i">${o.i}</i></button>`;
-  return `<div class="q-decide"${mk('decide', 'fade')}>${line}${rp ? `<p class="q-compare-price">قیمت کالای اول: <b dir="ltr">${rp}</b> تومان</p>` : ''}<div class="q-ans" role="group" aria-label="پاسخ" data-tour="answers">${btn(A, 'گرون‌تره')}${btn(B, 'ارزون‌تره')}</div></div>`;
+  return `<div class="q-decide"${mk('decide', 'fade')}><div class="q-ans" role="group" aria-label="پاسخ" data-tour="answers">${btn(A, 'گرون‌تره')}${btn(B, 'ارزون‌تره')}</div></div>`;
 }
 export const prompt = (text, muted) => `<p class="q-prompt${muted ? ' is-muted' : ''}">${text}</p>`;
 export function verdict(k, t, sub, pop) {

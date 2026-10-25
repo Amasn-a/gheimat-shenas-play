@@ -28,7 +28,7 @@ try {
   if (!res.ok) throw new Error('catalog ' + res.status);
   setCatalog(await res.json());
 } catch (e) {
-  app.innerHTML = '<p style="color:#23252B;font:600 16px/1.8 Digikala,sans-serif;text-align:center;padding:40vh 24px 0">نسخهٔ نمایشی بارگذاری نشد. صفحه را دوباره باز کن.</p>';
+  app.innerHTML = '<p style="color:#23252B;font:600 16px/1.8 Digikala;text-align:center;padding:40vh 24px 0">نسخهٔ نمایشی بارگذاری نشد. صفحه را دوباره باز کن.</p>';
   throw e;
 }
 install();

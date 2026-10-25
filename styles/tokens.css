@@ -37,7 +37,7 @@
   --radius-s: 14px;
   --touch: 48px;
 
-  --font: Digikala, sans-serif;   /* only the supplied family is ever loaded; main.js waits for it before painting text */
+  --font: Digikala;   /* only the supplied family is ever loaded; main.js waits for it before painting text */
   --shadow-sheet: 0 -8px 24px rgba(35, 37, 43, 0.06);
   --shadow-card: 0 2px 10px rgba(35, 37, 43, 0.06);
   --ease: cubic-bezier(.3, .7, .2, 1);

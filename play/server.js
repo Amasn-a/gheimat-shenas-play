@@ -14,7 +14,9 @@ const STORE = 'pe.play.state.v1';
 // LaunchConfig.value() of gheimat-shenas (R-20, R-33, R-41, R-47, brief 2026-10-20, redesign 2026-10-21)
 const CFG = {
   configVersion: 1, catalogVersion: 2, playsPerDay: 3,
-  inputMs: 10_000, acceptMs: 12_500, offerMs: null, offerAcceptMs: null, paymentResolutionMs: 60_000,
+  inputMs: 10_000, acceptMs: 12_500,
+  leadMs: 5_000,   // owner 2026-10-26: 5 s between questions; the next product is sent hidden at its start so its photo can load
+ offerMs: null, offerAcceptMs: null, paymentResolutionMs: 60_000,
   inactivityMs: 180_000, offerActivationMs: 180_000, timeoutGraceMs: 1_000, checkpointAutoContinueMs: 5_000,
   checkpoints: [
     { id: 'cp_5', requiredCorrect: 5, title: 'بازاری تازه‌کار', badgeAssetId: 'badge_5', reward: 0, percent: 50 },
@@ -498,18 +500,26 @@ function start(device) {
   return { status: 201, body: { run: runView(run, device), replacedRun: replaced, quota: quota(now, p.playsUsed) } };
 }
 
-function reveal(runId, device) {
+function reveal(runId, device, showNow) {
   const run = lockForCommand(runId);
   if (run.state === 'FINISHED') throw finishedError(run, device);
   requireDevice(run, device);
-  if (run.state === 'QUESTION_OPEN') return runView(run, device);   // same question, any key
+  if (run.state === 'QUESTION_OPEN') {   // same question, any key; «نشان بده» during the 5 s lead shows it now, deadlines move with it
+    const q = S.qs[run.questionIds[run.questionIds.length - 1]], now = clockNow;
+    if (showNow && q && q.state === 'OPEN' && q.releasedAt > now) {
+      Object.assign(q, { releasedAt: now, inputDeadline: now + CFG.inputMs, acceptDeadline: now + CFG.acceptMs });
+      run.nextDeadlineAt = q.acceptDeadline + CFG.timeoutGraceMs;
+    }
+    return runView(run, device);
+  }
   if (run.state !== 'READY') throw stateError('INVALID_STATE', run, device);
   const ref = P(run.referenceDkp), now = clockNow;
   const sel = chooseComparison(ref.priceToman, run.score, runProducts(run), dateOf(now));
   if (!sel) { finish(run, 'no_products', now); return runView(run, device); }
   const q = { questionId: newId(), runId: run.runId, seq: run.nextSeq, scoreBefore: run.score, bandIndex: bandIndexFor(run.score),
     referenceDkp: ref.dkp, referencePrice: ref.priceToman, comparisonDkp: sel.dkp, comparisonPrice: sel.price,
-    releasedAt: now, inputDeadline: now + CFG.inputMs, acceptDeadline: now + CFG.acceptMs, state: 'OPEN', choice: null, receivedAt: null, settledAt: null };
+    releasedAt: now + (showNow ? 0 : CFG.leadMs), inputDeadline: 0, acceptDeadline: 0, state: 'OPEN', choice: null, receivedAt: null, settledAt: null };
+  Object.assign(q, { inputDeadline: q.releasedAt + CFG.inputMs, acceptDeadline: q.releasedAt + CFG.acceptMs });
   S.qs[q.questionId] = q; run.questionIds.push(q.questionId);
   Object.assign(run, { state: 'QUESTION_OPEN', nextDeadlineAt: q.acceptDeadline + CFG.timeoutGraceMs });
   run.nextSeq++;
@@ -522,7 +532,7 @@ function answer(questionId, choice, device, receivedAt) {
   const peek = S.qs[questionId]; if (!peek) throw notFound();
   const owner = S.runs[peek.runId];
   // receipt first: recorded on arrival when the question is open, on time and asked from the run's device
-  if (peek.state === 'OPEN' && peek.receivedAt == null && admits(peek, receivedAt) && owner.deviceId === device && owner.state === 'QUESTION_OPEN')
+  if (peek.state === 'OPEN' && peek.receivedAt == null && admits(peek, receivedAt) && receivedAt >= peek.releasedAt && owner.deviceId === device && owner.state === 'QUESTION_OPEN')
     Object.assign(peek, { choice, receivedAt });
   const run = lockForCommand(peek.runId), q = S.qs[questionId];
   if (q.state === 'CORRECT' || q.state === 'WRONG') return answerView(q, run, device);   // first committed answer wins; replays get it
@@ -531,6 +541,7 @@ function answer(questionId, choice, device, receivedAt) {
   requireDevice(run, device);
   if (q.receivedAt == null) {
     if (receivedAt > q.acceptDeadline) throw stateError('QUESTION_EXPIRED', run, device);   // inclusive cutoff
+    if (receivedAt < q.releasedAt) throw stateError('QUESTION_NOT_RELEASED', run, device);   // still inside the 5 s lead
     Object.assign(q, { choice, receivedAt });
   }
   settleAnswer(run, q, clockNow);
@@ -724,7 +735,7 @@ const ROUTES = [
   ['GET', /^\/bootstrap$/, (m, c) => bootstrap(c.device)],
   ['POST', /^\/runs$/, (m, c) => start(c.device)],
   ['GET', /^\/runs\/([a-z0-9]+)$/, (m, c) => runView(lockForCommand(m[1]), c.device)],
-  ['POST', /^\/runs\/([a-z0-9]+)\/reveal$/, (m, c) => reveal(m[1], c.device)],
+  ['POST', /^\/runs\/([a-z0-9]+)\/reveal$/, (m, c) => reveal(m[1], c.device, c.body.now === true)],
   ['POST', /^\/questions\/([a-z0-9]+)\/answer$/, (m, c) => answer(m[1], c.body.choice, c.device, c.receivedAt)],
   ['POST', /^\/runs\/([a-z0-9]+)\/offer$/, (m, c) => activateOffer(m[1], c.device)],
   ['POST', /^\/offers\/([a-z0-9]+)\/continue$/, (m, c) => continueOffer(m[1], c.device, c.receivedAt)],
@@ -753,7 +764,7 @@ function handle(method, path, headers, bodyText) {
     if (method === 'POST') {
       try { body = bodyText ? JSON.parse(bodyText) : {}; } catch (e) { throw invalid('malformed JSON', {}); }
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw invalid('body must be a JSON object', {});
-      const allowed = path.endsWith('/answer') ? ['choice'] : [];
+      const allowed = path.endsWith('/answer') ? ['choice'] : path.endsWith('/reveal') ? ['now'] : [];
       const extra = Object.keys(body).find(k => !allowed.includes(k));
       if (extra) throw invalid('unknown field', { [extra]: 'not allowed' });
       const key = headers.get('Idempotency-Key');

@@ -5,7 +5,7 @@
  --blue:#4055ed;--surface:#f2f2f8;--surface-2:#e8e9f1;--line:#dcdde8;
  --coin-bg:#ffedb5;--coin-ink:#67470a;--gold:#ffb52b;--ok:#087c54;--ok-tint:#e0f8e9;
  --no:#bf1639;--no-tint:#ffeaf0;--lilac:#15162c;--focus:#2544d8;
- --radius:22px;--radius-l:26px;--gutter:20px;--font:Digikala,Tahoma,Arial,sans-serif;
+ --radius:22px;--radius-l:26px;--gutter:20px;--font:Digikala;
 }
 html,body{background:var(--bg)}
 body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}

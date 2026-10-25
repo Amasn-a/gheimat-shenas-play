@@ -59,7 +59,7 @@ function screen() {
   if (v === 'G02.GUIDE') return V.vGuide({ config: cfg(), demo: !S.ui.guideRules, step: S.ui.guideLesson?.step || 0, paused: S.ui.guideLesson?.paused !== false || motion.reducedMotion(), still: motion.reducedMotion() });
   if (v === 'G02.ONBOARDING') return onboardScreen();
   if (v === 'G03.LOADING') return loadingRun();
-  if (['G03.READY', 'G03.PREPARING', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
+  if (['G03.READY', 'G03.PREPARING', 'G03.COUNTDOWN', 'G03.PREPARE_FAILED', 'G06.SUCCESS'].includes(v)) return ready();
   if (v === 'G03.QUESTION_ACTIVE' || v === 'G03.ANSWER_PENDING') return question();
   if (['G03.CORRECT_FEEDBACK', 'G03.WRONG_FEEDBACK', 'G03.TIMEOUT'].includes(v)) return feedback();
   if (isLoss(v)) return lossScreen();
@@ -82,7 +82,7 @@ const leave = () => V.leaveSheet({ leave: S.ui.leave, score: S.run.score, checkp
 
 function loadingRun() {
   return V.game(V.gameTop(0, true), V.track(0, cfg().checkpoints), V.timer({ mode: 'idle' }),
-    '<article class="q-ref q-skel" aria-busy="true" aria-label="کالای اول در راهه"></article>' + V.revealCard('busy'), '', '', S.ui.toast);
+    '<article class="q-ref q-skel" aria-busy="true" aria-label="کالای اول در راهه"></article>' + V.revealCard('wait'), '', '', S.ui.toast);
 }
 
 function connPill() {
@@ -92,12 +92,10 @@ function connPill() {
 
 function ready() {
   const v = S.view, off = S.ui.offline;
-  const st = v === 'G03.PREPARING' ? 'busy' : v === 'G03.PREPARE_FAILED' ? 'failed' : off ? 'off' : 'on';
+  const st = v === 'G03.COUNTDOWN' && S.q ? 'count' : v === 'G03.PREPARE_FAILED' ? 'failed' : off ? 'off' : 'wait';
   const lead = connPill();                                    // after a continue the toast says so; no extra row that could push the button off
-  const nx = nextCp(S.run.score);   // the next goal, in words, where there is room for it (not during the timed question)
-  const goal = nx ? `${fa(nx.requiredCorrect - S.run.score)} جواب درست تا «${esc(nx.title)}»${nx.rewardAmount > 0 ? ` و ${fa(nx.rewardAmount)} دیجی‌کوین` : ''}` : '';
-  return V.game(top(), trk(), V.timer({ mode: 'idle' }), lead + V.refCard(S.ref, false) + V.revealCard(st, goal),
-    '<p class="q-hintline">قبل از نمایش، کالای اول رو ببین</p>', leave(), S.ui.toast);
+  const t0 = st === 'count' ? clock.ms(S.q.t0) : 0, left = Math.max(0, t0 - clock.serverNow());
+  return V.game(top(), trk(), V.timer({ mode: 'idle' }), lead + V.refCard(S.ref, false) + V.revealCard(st, { total: S.ui.leadTotal || 5000, left }), '', leave(), S.ui.toast);
 }
 
 /** Visible countdown of the open question: whole seconds from the server-anchored deadline (never a decremented counter). */
@@ -112,9 +110,8 @@ function question() {
   let lead = off ? V.pill('اتصال قطع شد؛ تا برگرده نمی‌شه جواب داد و زمان ادامه داره.', 'wifi') : connPill();
   if (S.ui.slowSettle) lead = V.pill(pend ? 'پاسخت ثبت شده؛ نتیجه‌اش هنوز نرسیده.' : 'نتیجه هنوز نرسیده.', 'refresh', '<button class="q-pill__btn" data-act="recheck-answer">بررسی دوباره</button>');
   const tm = pend ? V.timer({ mode: 'busy' }) : over ? V.timer({ mode: 'zero' }) : V.timer({ mode: tn.low ? 'low' : 'run', t: tn.t, p: tn.p });
-  const line = pend ? V.prompt('در حال بررسی پاسخ...', true) : over ? V.prompt('زمان تموم شد؛ در حال بررسی…', true) : V.prompt(V.Q_PROMPT, off);
   return V.game(top(), trk(), tm, lead + V.refCard(S.ref, true) + V.cmpCard(q.product, 'hidden', 0, q.imgSlow && !q.imgReady),
-    V.decide(pend ? 'pending' : off || over ? 'off' : 'on', q.pick, line, S.ref.price), leave(), S.ui.toast);
+    V.decide(pend ? 'pending' : off || over ? 'off' : 'on', q.pick, '', S.ref.price), leave(), S.ui.toast);
 }
 
 /** The server's verdict in the place the player acted: same cards, same buttons, same sizes (§8). */
@@ -124,18 +121,18 @@ function feedback() {
   const dir = V.dirOf(fb.direction), truthW = V.DIRW[dir];
   let tm, card, dec;
   if (fb.kind === 'correct') {
-    tm = V.timer({ mode: 'done' });
-    card = V.cmpCard(fb.product, 'ok', fb.revealedPrice);
     const pop = S.ui.popped !== fb.questionId; S.ui.popped = fb.questionId;   // the check pops once per confirmed question, not on re-renders
-    dec = V.decide('ok', fb.choice, V.verdict('ok', 'درست گفتی!', fb.equal ? 'قیمت‌ها برابر بود؛ هر دو جواب درسته' : `${truthW} بود`, pop));
+    tm = V.timer({ mode: 'verdict', kind: 'ok', title: 'درست گفتی!', sub: fb.equal ? 'قیمت‌ها برابر بود؛ هر دو جواب درسته' : `${truthW} بود`, pop });
+    card = V.cmpCard(fb.product, 'ok', fb.revealedPrice);
+    dec = V.decide('ok', fb.choice, '');
   } else if (fb.kind === 'wrong') {
-    tm = V.timer({ mode: 'done' });
+    tm = V.timer({ mode: 'verdict', kind: 'no', title: 'جوابت درست نبود', sub: `${truthW} بود` });
     card = V.cmpCard(fb.product, 'no', fb.revealedPrice);
-    dec = V.decide('no', fb.choice, V.verdict('no', 'جوابت درست نبود', `${truthW} بود`));
+    dec = V.decide('no', fb.choice, '');
   } else {   // timeout: no answer is shown as the player's
-    tm = V.timer({ mode: 'zero' });
+    tm = V.timer({ mode: 'verdict', kind: 'time', title: 'زمان تموم شد', sub: `${truthW} بود` });
     card = V.cmpCard(fb.product, 'time', fb.revealedPrice);
-    dec = V.decide('truth', fb.direction === 'higher' ? 'higher' : 'lower', V.verdict('time', 'زمان تموم شد', `${truthW} بود`));
+    dec = V.decide('truth', fb.direction === 'higher' ? 'higher' : 'lower', '');
   }
   return V.game(top(), trk(), tm, connPill() + V.refCard(S.ref, true) + card, dec, leave(), S.ui.toast);
 }
@@ -174,9 +171,9 @@ function lossScreen() {
 function recapHTML() {
   const fb = S.fb; if (!fb || !fb.product) return '';
   const truth = V.DIRW[V.dirOf(fb.direction)], mine = fb.kind === 'timeout' || !fb.choice ? 'جوابی ثبت نشد' : fb.choice === 'higher' ? 'گرون‌تره' : 'ارزون‌تره';
-  const ref = S.ref ? `<p class="q-recap__row"><span>کالای اول</span><b>${title(S.ref.displayTitle)}</b>${V.price(S.ref.price)}</p>` : '';
-  return `<section class="q-recap" aria-label="آخرین مقایسه"><h2>آخرین مقایسه</h2>${ref}<p class="q-recap__row"><span>کالای دوم</span><b>${title(fb.product.displayTitle)}</b>${V.price(fb.revealedPrice)}</p>` +
-    `<p class="q-recap__why">کالای دوم <b>${truth}</b> بود؛ انتخاب تو: <b>${mine}</b></p></section>`;
+  const ref = S.ref ? `<p class="q-recap__row"><b>${title(S.ref.displayTitle)}</b>${V.price(S.ref.price)}</p>` : '';
+  return `<section class="q-recap" aria-label="آخرین مقایسه"><h2>آخرین مقایسه</h2>${ref}<p class="q-recap__row"><b>${title(fb.product.displayTitle)}</b>${V.price(fb.revealedPrice)}</p>` +
+    `<p class="q-recap__why">دومی <b>${truth}</b> بود؛ انتخاب تو: <b>${mine}</b></p></section>`;
 }
 
 // ------------------------------------------------------------------------------------------------ onboarding (§14)
@@ -241,7 +238,7 @@ export function render() {
   const dialog = root.querySelector('[role="dialog"]');
   if (dialog && !dialog.contains(document.activeElement)) requestAnimationFrame(()=>dialog.querySelector('button:not([disabled])')?.focus({preventScroll:true}));
   root.dataset.view = stateId();
-  root.classList.toggle('gu', !!screenEl.querySelector('.q-page.q-game'));   // game UI system: migrated screens only (batch 1)
+  scheduleAuto();
   wireImages();
   if (before) motion.morph(root, before, ms, () => { const q = S.ui.queued; S.ui.queued = null; if (q === 'reveal') setTimeout(reveal, 0); });
   if (root.querySelector('[data-countdown],[data-offer-left]')) tickLoop();
@@ -289,6 +286,13 @@ function wireImages() {
 }
 
 function go(view) { S.view = view; render(); }
+/** Ready for the next product and nothing in the way (checkpoint, offline): ask for it, which starts the 5 s lead. */
+let autoT = 0;
+function scheduleAuto() {
+  clearTimeout(autoT);
+  if (!S.run || S.ui.cp || S.ui.cpDue || S.ui.offline || S.ui.leave || !['G03.READY', 'G06.SUCCESS'].includes(S.view)) return;
+  autoT = setTimeout(() => { if (['G03.READY', 'G06.SUCCESS'].includes(S.view)) reveal(); }, Math.max(0, S.ui.guardUntil - now()) + 60);
+}
 function toast(text, no, id) {
   S.ui.toast = { text, no, id, at: now() };
   const t = S.ui.toast; setTimeout(() => { if (S.ui.toast === t) { S.ui.toast = null; render(); } }, DUR.toastMs);
@@ -507,6 +511,7 @@ function applyRun(run, context) {
     const q = run.question;
     if (!S.q || S.q.questionId !== q.questionId) S.q = { ...q, imgReady: false, imgSlow: false, pick: null, key: null };
     else Object.assign(S.q, { t0: q.t0, inputDeadline: q.inputDeadline, acceptDeadline: q.acceptDeadline });
+    if (S.view !== 'G03.ANSWER_PENDING' && !S.q.pick && clock.ms(S.q.t0) > clock.serverNow() + 150) return countdown(S.q);   // resumed inside the lead
     if (S.view !== 'G03.ANSWER_PENDING') go('G03.QUESTION_ACTIVE'); else render();
     return tickLoop();
   }
@@ -536,6 +541,7 @@ function applyRun(run, context) {
 // ------------------------------------------------------------------------------------------------ reveal / answer
 export async function reveal() {
   if (!S.run || S.ui.offline) return;
+  if (S.view === 'G03.COUNTDOWN') return showNow();
   if (!['G03.READY', 'G06.SUCCESS', 'G03.PREPARE_FAILED'].includes(S.view) || S.ui.cp || S.ui.cpDue) return;
   if (now() < S.ui.guardUntil) return;                         // a tap falling through from closing the checkpoint
   if (motion.running()) { S.ui.queued = 'reveal'; return; }
@@ -552,11 +558,7 @@ export async function reveal() {
     if (run.state === 'FINISHED' && run.finishReason === 'no_products') { S.ended = endedFrom(run); host.setBackHandler(null); return go('G03.NO_PRODUCTS_LEFT'); }
     if (run.state !== 'QUESTION_OPEN') return applyRun(run);
     S.q = { ...run.question, imgReady: false, imgSlow: false, pick: null, key: null, buzz: 0 };
-    S.ui.morph = DUR.verdictMs;
-    go('G03.QUESTION_ACTIVE');
-    const qid = S.q.questionId;
-    later(DUR.imageSlowMs, () => { if (S.q && S.q.questionId === qid && !S.q.imgReady) { S.q.imgSlow = true; render(); } });
-    tickLoop();
+    countdown(S.q);
   } catch (e) {
     if (g !== S.gen) return;
     if (e instanceof ApiError && e.network) return go('G03.PREPARE_FAILED');   // keep the key: a retry returns the same question
@@ -564,6 +566,39 @@ export async function reveal() {
     if (e instanceof ApiError && e.code === 'PREPARE_FAILED') return go('G03.PREPARE_FAILED');
     handleError(e);
   }
+}
+
+/**
+ * The 5 s between questions (owner 2026-10-26): the server sends the next product with a release time 5 s ahead; its photo
+ * loads now, hidden, and the question opens by itself at that time (the 10 s answer window starts there). A tap on
+ * «نشان بده» asks the server to release it at once.
+ */
+function countdown(q) {
+  const left = clock.ms(q.t0) - clock.serverNow();
+  if (left <= 150) return release(q);
+  if (q.product && q.product.imageUrl) { const im = new Image(); im.decoding = 'async'; im.src = q.product.imageUrl; im.decode?.().then(() => { if (S.q === q) q.imgReady = true; }).catch(() => {}); }
+  S.ui.leadTotal = Math.max(left, S.ui.leadTotal && S.view === 'G03.COUNTDOWN' ? S.ui.leadTotal : 0, 5000);
+  go('G03.COUNTDOWN');
+  later(left, () => release(q));
+}
+function release(q) {
+  if (S.q !== q || q.pick || !['G03.COUNTDOWN', 'G03.PREPARING', 'G03.READY', 'G06.SUCCESS'].includes(S.view)) return;
+  S.ui.morph = DUR.verdictMs; S.ui.leadTotal = 0;
+  go('G03.QUESTION_ACTIVE');
+  later(DUR.imageSlowMs, () => { if (S.q === q && !q.imgReady) { q.imgSlow = true; render(); } });
+  tickLoop();
+}
+async function showNow() {
+  const q = S.q, g = S.gen;
+  if (!q || S.ui.showingNow) return;
+  S.ui.showingNow = true;
+  try {
+    const run = await api.reveal(S.run.runId, newKey(), true);
+    if (g !== S.gen || S.q !== q) return;
+    if (run.state === 'QUESTION_OPEN' && run.question.questionId === q.questionId) Object.assign(q, { t0: run.question.t0, inputDeadline: run.question.inputDeadline, acceptDeadline: run.question.acceptDeadline });
+    if (clock.ms(q.t0) <= clock.serverNow() + 150) release(q);
+  } catch (e) { /* the release time stands; the question still opens by itself */ }
+  finally { S.ui.showingNow = false; }
 }
 
 /**

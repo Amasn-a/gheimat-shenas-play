@@ -15,7 +15,9 @@ async function req(path,method='GET',body={},key=crypto.randomUUID()){
 const reset=()=>{reviewer.resetAll();reviewer.resetPlays();stamp+=1000;};
 const start=async()=> (await req('/runs','POST')).run;
 async function question(run,correct=true){
- const qrun=await req('/runs/'+run.run_id+'/reveal','POST');
+ let qrun=await req('/runs/'+run.run_id+'/reveal','POST');
+ assert.ok(Date.parse(qrun.question.t0)-stamp===5000,'Next product is sent 5 s ahead');
+ qrun=await req('/runs/'+run.run_id+'/reveal','POST',{now:true});
  const q=qrun.question,price=prices.get(q.product.display_title),ref=qrun.reference.price;
  const higher=price>=ref;let choice=(correct?higher:!higher)?'higher':'lower';
  return req('/questions/'+q.question_id+'/answer','POST',{choice});
@@ -43,5 +45,6 @@ stamp+=2000;workers.forEach(fn=>fn());op=await req('/operations/'+op.operation_i
 reset();reviewer.seedAttended(3);const daily=await req('/player/daily-reward');assert.equal(daily.state,'claimable');const dailyBefore=reviewer.balance(),dailyKey=crypto.randomUUID();
 await req('/player/daily-reward/claim','POST',{},dailyKey);await req('/player/daily-reward/claim','POST',{},dailyKey);assert.equal(reviewer.balance(),dailyBefore+1,'Daily claim is credited once');
 reset();reviewer.setBalance(0);run=await start();ans=await question(run,false);let noFunds=await req('/runs/'+run.run_id+'/offer','POST');assert.equal(noFunds.offer,null);assert.equal(noFunds.no_offer_reason,'no_funds');
-reset();run=await start();let qrun=await req('/runs/'+run.run_id+'/reveal','POST');stamp+=14000;let timed=await req('/runs/'+run.run_id);assert.equal(timed.last_result.result,'timeout','Question expiry still authoritative');
-console.log('PASS: 21 correct answers; 4 checkpoints +9; untimed offer survives 10min; charge -5 once; continue preserves score; cap; share URL; rejected and unknown payments; daily claim once; insufficient funds; 10s question timeout.');
+reset();run=await start();let early=await req('/runs/'+run.run_id+'/reveal','POST');stamp+=1000;let tooEarly=await fetch(API_ORIGIN+'/v1/gamification/price-expert/questions/'+early.question.question_id+'/answer',{method:'POST',headers:{Authorization:'Bearer demo','X-Device-Id':device,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({choice:'higher'})});assert.equal(tooEarly.status,409,'No answer before the product is shown');
+stamp+=4000+14000;let timed=await req('/runs/'+run.run_id);assert.equal(timed.last_result.result,'timeout','Question expiry still authoritative');
+console.log('PASS: 21 correct answers; 4 checkpoints +9; untimed offer survives 10min; charge -5 once; continue preserves score; cap; share URL; rejected and unknown payments; daily claim once; insufficient funds; 10s question timeout; 5 s lead, show-now and no early answer.');

@@ -1,6 +1,7 @@
 // Play entry (GitHub Pages). This Play-only redesign intentionally diverges from gheimat-shenas (src/, styles/, fonts/). This file
 // does what the Super App and the backend do in production: it configures the host adapter for a plain browser and
 // answers the player's API calls with the in-browser demo server (play/server.js). Reviewer controls: add ?review.
+import { splash, BOOT_ERROR } from '../src/launch.js';   // first: the splash mounts before anything else loads
 import { configureHost } from '../src/host.js';
 import { install, API_ORIGIN, setCatalog, net, reviewer } from './server.js';
 
@@ -29,6 +30,7 @@ try {
   setCatalog(await res.json());
 } catch (e) {
   app.innerHTML = '<p style="color:#23252B;font:600 16px/1.8 Digikala;text-align:center;padding:40vh 24px 0">نسخهٔ نمایشی بارگذاری نشد. صفحه را دوباره باز کن.</p>';
+  splash.showError(BOOT_ERROR, () => location.reload());   // the demo catalog is part of boot: never reveal home without it
   throw e;
 }
 install();

@@ -318,7 +318,15 @@ const endedFrom = st => st ? { score: st.score, checkpoint: st.highestCheckpoint
  * player's state) — no invented progress or forced delay. A new account goes to the onboarding, others to the home.
  * A run in progress on this device comes first (its deadlines keep running).
  */
+/** The launch splash waits for this: one event per boot attempt, ok when a real screen (not a boot error) is showing. */
+function bootDone(ok) { root?.dispatchEvent(new CustomEvent('qs:boot', { detail: { ok } })); }
+const BOOT_FAILED = ['G00.ERROR', 'G11.SERVICE_ERROR', 'G11.AUTH_ERROR'];
 export async function boot() {
+  const ok = await bootInner();
+  bootDone(!BOOT_FAILED.includes(S.view));
+  return ok;
+}
+async function bootInner() {
   S.gen++; motion.end();
   Object.assign(S, { run: null, ref: null, q: null, fb: null, offer: null, op: null, result: null, keys: {} });
   resetRunUi();

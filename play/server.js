@@ -66,8 +66,8 @@ const fresh = () => ({
 let S = fresh();
 function load() {
   try { const v = JSON.parse(localStorage.getItem(STORE)); if (v && v.v === 1) S = v; } catch (e) { /* storage blocked or corrupt: start fresh */ }
-  // owner 2026-10-25: browsers that already played get topped up to 1000 once
-  if (!S.qaTopUp1000) { S.wallet.balance = Math.max(S.wallet.balance, 1000); S.qaTopUp1000 = true; save(); }
+  // owner 2026-10-25 (temporary QA): every browser, including ones that already played, is kept at 1000 coins or more on each load
+  if (S.wallet.balance < 1000) { S.wallet.balance = 1000; save(); }
   try { } catch (e) { /* storage blocked or corrupt: start fresh */ }
 }
 function save() {

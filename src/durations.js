@@ -2,7 +2,7 @@
 // at 375×812, not owner-approved numbers, and they never extend a question or offer deadline.
 export const DUR = {
   correctHoldMs: 1300,      // readable correct verdict before the promotion (range 900–1,400)
-  missHoldMs: 1000,         // wrong / timeout: the verdict in place after the server's result, then the loss screen (§8: 700–1,000)
+  missHoldMs: 500,          // wrong / timeout: the revealed price lands, then the offer modal opens over it (owner 2026-10-25: «همون لحظه»)
   promoteMs: 540,           // answered card → reference slot (450–650)
   shrinkMs: 340,            // big reference → compact ticket on «نمایش بده» (250–400)
   verdictMs: 260,           // hidden tag → price plate, ask row → verdict

@@ -1,4 +1,4 @@
-/* قیمت‌شناس · Game UI design system v2 (2026-10-26)
+/* قیمت‌شناس · Game UI design system v3 (owner review 2026-10-25; v2 2026-10-26 below, overridden at the end of the file)
    Deep-blue game world, framed panels, yellow call to action, Digikala red «گرون‌تره» / blue «ارزون‌تره».
    Owner feedback v2: buttons carry only a 2–3 px solid drop (no blur) and a very faint white inner line — no outline, no
    lip; display-only figures (score, DigiCoin) never look like buttons; only the Digikala variable font is used.
@@ -22,6 +22,10 @@
   --gu-yellow-lip: #B87400;
   --gu-yellow-ink: #3B2300;   /* text on yellow (9:1) */
   --gu-green: #53CE17;        /* correct */
+  --gu-lower: #15873F;        /* «ارزون‌تره» (owner 2026-10-25; white text 4.6:1) */
+  --gu-lower-lip: #0B5A2B;
+  --gu-promo: #EF4056;        /* the deals banner */
+  --gu-promo-2: #C81E43;
   --gu-green-lip: #2E8A0B;
   --gu-slate: #40436C;        /* secondary buttons */
   --gu-slate-lip: #23264A;
@@ -342,4 +346,225 @@ body #app.gu, body.pe-play #app.gu, body.pe-play:not(.pe-dev) #app.gu, .pe-dev #
 @media (prefers-reduced-motion: reduce) {
   .gu .q-btn, .gu .q-ab { transition: none; }
   .gu .q-timer__n { animation: none !important; }
+}
+
+/* ==================================================================== v3 — owner review 2026-10-25
+   1. No text anywhere has a shadow or a stroke.
+   2. Nothing that is not clickable has a shadow or a stroke; only tappable controls keep the 2–3 px, 0-blur drop.
+   3. Product photos: no white window; the photo itself has round corners.
+   4. «ارزون‌تره» is green.  5. The icon sits at the label's right; the play triangle points at the label.
+   6. Track: the coin alone (no amount), coins and badges one size, counts at 90 % opacity. */
+.gu, .gu * { text-shadow: none !important; -webkit-text-stroke: 0 !important; }
+.gu *:not(button):not(a):not(.q-spin):not(button *):not(a *) { box-shadow: none !important; border-color: transparent !important; }
+.gu .q-track__ic, .gu .q-track li.is-done .q-track__ic, .gu .q-invite__tag, .gu .q-home-art { filter: none !important; }
+.gu .q-track li:not(.is-done) .q-track__ic { filter: saturate(.6) brightness(.85) !important; }
+
+/* buttons: the icon and the label are one group, centred; the icon is written first, so it sits at the label's right */
+.gu .q-btn > span, .gu .q-ab > span { flex: 0 1 auto; }
+.gu .q-btn__i--play svg { transform: scaleX(-1); }   /* mirrored: the tip points at the label (owner's choice) */
+.gu .q-ab { gap: 8px; }
+
+/* answers: red «گرون‌تره», green «ارزون‌تره» (white text 4.6:1); the verdict keeps its own icons and words */
+.gu .q-ab:nth-child(2) { --lip: var(--gu-lower-lip); background: var(--gu-lower); }
+.gu .q-ab:nth-child(2):active:not([disabled]) { background: var(--gu-lower); }
+
+/* track */
+.gu .q-track__n { color: rgba(255, 255, 255, .9); font-weight: 800; }
+.gu .q-stack b { display: none; }
+.gu .q-track__ic img, .gu .q-track__ic .q-stack, .gu .q-track__ic .q-coin { width: var(--node); height: var(--node); object-fit: contain; }
+
+/* timer: one plate, the seconds in a quiet filled circle (no ring, no frame in a frame); the pulse and the red last 3 s stay */
+.gu .q-timer__n { background: rgba(255, 255, 255, .1); }
+.gu .q-timer.is-low .q-timer__n, .gu .q-timer.is-zero .q-timer__n { background: rgba(239, 64, 86, .22); }
+.gu .q-timer.is-ok .q-timer__v { background: var(--gu-green); }
+.gu .q-timer.is-no .q-timer__v, .gu .q-timer.is-time .q-timer__v { background: var(--gu-red); }
+
+/* product photos */
+.gu .q-img { background: transparent !important; overflow: visible; border-radius: 0; }
+.gu .q-img img { padding: 0 !important; object-fit: contain; border-radius: 16px; background: #fff; }
+.gu .q-img > svg { border-radius: 16px; }
+.gu .q-img.q-img--none, .gu .q-img.is-failed { background: rgba(255, 255, 255, .08) !important; border-radius: 16px; }
+.gu .q-ref .q-img img { border-radius: 12px; }
+/* the verdict on the second product: a tinted surface instead of a coloured frame */
+.gu .q-cmp.is-ok { background: linear-gradient(180deg, #1E7F45, #155F35); }
+.gu .q-cmp.is-no, .gu .q-cmp.is-time { background: linear-gradient(180deg, #A3243A, #7C1A2C); }
+.gu .q-ref__t, .gu .q-cmp__t { font-weight: 800; }
+
+/* ------------------------------------------------------------------ home (owner sketch 2026-10-25) */
+.gu .q-page.q-home { padding-bottom: 0; gap: 14px; }
+.gu .q-hdr--home { border-bottom: 0; }
+.gu .q-brand { margin: 0; color: #fff; font-size: 20px; font-weight: var(--gu-display); line-height: 1.3; }
+.gu .q-hdr--home .q-guidebtn { width: 44px; padding: 0; justify-content: center; display: grid; place-items: center; border-radius: 12px; background: rgba(255, 255, 255, .14); }
+.gu .q-home__scroll { gap: 14px; flex: 1 1 auto; }
+/* best record: half the old height, information only — a flat surface that cannot be mistaken for a button */
+.gu .q-record { min-height: 0 !important; padding: 10px 18px !important; border-radius: 18px; background: rgba(6, 18, 70, .32) !important; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gu .q-record__n { display: flex; flex-direction: column; gap: 0; }
+.gu .q-record__n span { font-size: 13px; color: var(--gu-ice); font-weight: 700; }
+.gu .q-record__n b { font-size: 32px; line-height: 1.15; color: var(--gu-yellow); font-weight: var(--gu-display); }
+.gu .q-record .q-badgecard { width: 56px; margin: 0; padding: 0; background: transparent; }
+.gu .q-record .q-badgecard figcaption { display: none; }
+.gu .q-record .q-badgecard__art { width: 56px; height: 56px; background: transparent; }
+.gu .q-record .q-badgecard__art img { width: 100%; height: 100%; object-fit: contain; }
+.gu .q-record__none { margin: 0; font-size: 14px; font-weight: 800; color: var(--gu-ice); }
+/* promo banner (clickable: it keeps the drop) */
+.gu .q-dealbanner { --lip: #A3122B; display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; padding: 16px 18px 12px; border: 0; border-radius: 18px;
+  color: #fff; text-align: start; font: inherit; cursor: pointer;
+  background: radial-gradient(120% 140% at 0% 0%, #FF8FA0 0%, rgba(255, 143, 160, 0) 55%), linear-gradient(135deg, var(--gu-promo), var(--gu-promo-2));
+  box-shadow: var(--gu-inner), 0 var(--gu-drop) 0 var(--lip); transition: transform .08s, box-shadow .08s; }
+.gu .q-dealbanner:active { transform: translateY(2px); box-shadow: var(--gu-inner), 0 1px 0 var(--lip); }
+.gu .q-dealbanner b { font-size: 17px; line-height: 1.6; font-weight: var(--gu-display); }
+.gu .q-dealbanner__go { align-self: flex-end; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 800; color: #FFE9EC; }
+/* bottom sheet: full-bleed, curved top, the chances line and the one action */
+.gu .q-home .q-homesheet { flex: none !important; margin: auto calc(-1 * var(--gutter)) 0; padding: 22px var(--gutter) max(18px, env(safe-area-inset-bottom)); gap: 12px;
+  border-radius: 32px 32px 0 0 !important; justify-content: flex-start;
+  background: linear-gradient(180deg, #2457CF 0%, var(--gu-panel) 50%, var(--gu-panel-2) 100%) !important; }
+.gu .q-chances { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 700; color: var(--gu-ice); }
+.gu .q-chances svg { color: var(--gu-ice); }
+.gu .q-chances b { color: var(--gu-yellow); font-weight: var(--gu-display); }
+.gu .q-homesheet .q-btn { min-height: 56px; font-size: 19px; }
+
+/* ------------------------------------------------------------------ end screen 1: the continue offer modal */
+.gu .q-offerlayer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 64px var(--gutter) 24px;
+  background: rgba(3, 9, 34, .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: q-fade .2s; }
+.gu .q-offer__bal { position: absolute; top: max(14px, env(safe-area-inset-top)); left: var(--gutter); }
+.gu .q-offer { position: relative; width: min(100%, 360px); padding: 52px 20px 20px; border-radius: 26px; text-align: center; color: #fff;
+  background: linear-gradient(180deg, #3170F0 0%, #2152CF 55%, #1B45B3 100%); animation: q-offer-in .32s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes q-offer-in { from { transform: scale(.88); opacity: 0; } to { transform: none; opacity: 1; } }
+.gu .q-offer__icon { position: absolute; top: -38px; left: 50%; width: 76px; height: 76px; margin-left: -38px; display: grid; place-items: center; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFE98A, #FAC602 60%, #E9A800); }
+.gu .q-offer__icon .q-coin { width: 46px; height: 46px; }
+.gu .q-offer__x { position: absolute; top: 10px; inset-inline-start: 10px; width: 40px; height: 40px; }
+.gu .q-offer h2 { margin: 0 0 6px; font-size: 24px; line-height: 1.45; font-weight: var(--gu-display); }
+.gu .q-offer > p { margin: 0; font-size: 15px; line-height: 1.7; color: var(--gu-ice); font-weight: 700; }
+.gu .q-offer .q-status { margin-top: 12px; font-size: 13px; text-align: start; }
+.gu .q-offer__left { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px !important; font-size: 13px !important; }
+.gu .q-offer__btns { display: grid; grid-template-columns: 1.7fr 1fr; gap: 10px; margin-top: 20px; align-items: end; }
+.gu .q-offer__go { min-height: 58px; font-size: 19px; border-radius: 14px; }
+.gu .q-offer__go .q-coin { width: 24px; height: 24px; }
+.gu .q-offer__skip { min-height: 48px; font-size: 15px; }
+.gu .q-offer__go[aria-busy] { font-size: 14px; padding-inline: 12px; }
+/* a short burst around the coin when the offer opens */
+.gu .q-offer__burst { position: absolute; top: 0; left: 50%; width: 0; height: 0; pointer-events: none; }
+.gu .q-offer__burst i { position: absolute; width: 8px; height: 12px; border-radius: 2px; opacity: 0; background: var(--gu-yellow); }
+.gu .q-offer.is-new .q-offer__burst i { animation: q-burst .9s ease-out .15s forwards; }
+.gu .q-offer__burst i:nth-child(3n) { background: var(--gu-red-hi); } .gu .q-offer__burst i:nth-child(3n+1) { background: #7DE3A0; }
+.gu .q-offer__burst i:nth-child(1) { --dx: -110px; --dy: -70px; --r: 200deg; } .gu .q-offer__burst i:nth-child(2) { --dx: -80px; --dy: -110px; --r: -120deg; }
+.gu .q-offer__burst i:nth-child(3) { --dx: -40px; --dy: -130px; --r: 300deg; } .gu .q-offer__burst i:nth-child(4) { --dx: 0px; --dy: -140px; --r: 90deg; }
+.gu .q-offer__burst i:nth-child(5) { --dx: 40px; --dy: -128px; --r: -260deg; } .gu .q-offer__burst i:nth-child(6) { --dx: 80px; --dy: -108px; --r: 160deg; }
+.gu .q-offer__burst i:nth-child(7) { --dx: 112px; --dy: -66px; --r: -90deg; } .gu .q-offer__burst i:nth-child(8) { --dx: -130px; --dy: -20px; --r: 40deg; }
+.gu .q-offer__burst i:nth-child(9) { --dx: 130px; --dy: -24px; --r: -200deg; } .gu .q-offer__burst i:nth-child(10) { --dx: 20px; --dy: -90px; --r: 250deg; }
+@keyframes q-burst { 0% { opacity: 1; transform: translate(-50%, -50%) rotate(0); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 60px)) rotate(var(--r)); } }
+
+/* ------------------------------------------------------------------ end screen 2: the result */
+.gu .q-page.q-end { overflow: hidden; gap: 0; padding-bottom: 0; }
+.gu .q-end__hd { flex: none; }
+.gu .q-end__main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 28px; padding: 8px 2px 28px; }
+.gu .q-end__h { margin: 12px 0 0; text-align: center; font-size: 34px; line-height: 1.35; font-weight: var(--gu-display); color: #fff; }
+.gu .q-end__card { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 24px; background: rgba(6, 18, 70, .32); }
+.gu .q-end__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 14px; border-radius: 16px; background: rgba(255, 255, 255, .05); }
+.gu .q-end__row > span { font-size: 15px; font-weight: 700; color: var(--gu-ice); }
+.gu .q-end__row > b { font-size: 28px; line-height: 1.2; font-weight: var(--gu-display); color: var(--gu-yellow); }
+.gu .q-end__badge { display: inline-flex; align-items: center; gap: 8px; }
+.gu .q-end__badge img { width: 40px; height: 40px; object-fit: contain; }
+.gu .q-end__badge b { font-size: 16px; font-weight: 900; color: #fff; }
+.gu .q-end__better { margin: 4px 0 2px; padding: 12px 14px; border-radius: 16px; text-align: center; font-size: 16px; font-weight: 900; line-height: 1.6; color: var(--gu-yellow-hi); background: rgba(250, 198, 2, .12); }
+.gu .q-end__deals { display: flex; flex-direction: column; gap: 12px; }
+.gu .q-end__dh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gu .q-end__dh h2 { margin: 0; font-size: 17px; font-weight: 900; color: #fff; }
+.gu .q-linkbtn { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 6px; border: 0; background: transparent; color: var(--gu-yellow); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.gu .q-end__dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.gu .q-end__dl li { display: flex; }
+.gu .q-end__dl .q-deal { height: 100%; }
+.gu .q-end__dl li:nth-child(n+4) { display: none; }
+@media (min-width: 440px) { .gu .q-end__dl { grid-template-columns: repeat(4, 1fr); } .gu .q-end__dl li:nth-child(4) { display: flex; } }
+.gu .q-end__dl.is-loading i { aspect-ratio: 1; border-radius: 18px; background: rgba(255, 255, 255, .08); animation: q-pulse 1.2s ease-in-out infinite; }
+@keyframes q-pulse { 50% { opacity: .5; } }
+.gu .q-end__foot { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-inline: calc(-1 * var(--gutter)); padding: 14px var(--gutter) max(16px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(11, 31, 94, 0), rgba(11, 31, 94, .9) 30%); }
+.gu .q-end__foot .q-btn { min-height: 54px; font-size: 17px; }
+.gu .q-end .q-code { margin: 0; }
+/* a seen product with its deal (clickable: keeps the drop) */
+.gu .q-deal { position: relative; display: flex; flex-direction: column; width: 100%; padding: 0; border: 0; border-radius: 18px; background: #fff; color: #1d2a5c; font: inherit; cursor: pointer;
+  box-shadow: 0 var(--gu-drop) 0 rgba(4, 14, 52, .55); transition: transform .08s, box-shadow .08s; }
+.gu .q-deal:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(4, 14, 52, .55); }
+.gu .q-deal__img { position: relative; display: block; aspect-ratio: 1; padding: 10%; }
+.gu .q-deal__img img { width: 100%; height: 100%; object-fit: contain; }
+.gu .q-deal__off { position: absolute; top: 6px; inset-inline-end: 6px; padding: 2px 8px; border-radius: 999px; background: #EF4056; color: #fff; font-size: 12px; font-weight: 900; line-height: 1.6; }
+.gu .q-deal__coin { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 800; color: #8A5A00; }
+.gu .q-deal > .q-deal__coin { position: absolute; bottom: 6px; inset-inline-start: 6px; padding: 1px 6px 1px 8px; border-radius: 999px; background: #FFF4C2; }
+.gu .q-deal__coin .q-coin { width: 16px; height: 16px; }
+.gu .q-deal--row { flex-direction: row; align-items: center; gap: 12px; padding: 10px; text-align: start; }
+.gu .q-deal--row .q-deal__img { flex: none; width: 88px; padding: 6px; }
+.gu .q-deal__b { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 auto; }
+.gu .q-deal__t { font-size: 14px; font-weight: 800; line-height: 1.6; color: #1d2a5c; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; unicode-bidi: plaintext; }
+.gu .q-deal__go { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 800; color: #1474E0; }
+
+/* ------------------------------------------------------------------ G12.DEALS */
+.gu .q-deals__main { flex: 1 1 auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 12px; }
+.gu .q-deals__lead { margin: 4px 0 0; font-size: 16px; font-weight: 900; line-height: 1.7; color: #fff; }
+.gu .q-deals__list { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+
+/* ------------------------------------------------------------------ onboarding: the animated tour */
+.gu .q-page.q-onb--tour, .gu .q-page.q-guide--tour { gap: 0; overflow: hidden; }
+.gu .q-tour { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.gu .q-tour__top { flex: none; display: flex; align-items: center; gap: 12px; }
+.gu .q-tour__segs { flex: 1 1 auto; display: flex; gap: 5px; }
+.gu .q-tour__segs i { flex: 1; height: 4px; border-radius: 4px; overflow: hidden; background: rgba(255, 255, 255, .22); }
+.gu .q-tour__segs b { display: block; width: 0; height: 100%; background: #fff; }
+.gu .q-tour__skip { flex: none; min-height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .14); color: #fff; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
+.gu .q-tour__stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; border-radius: 24px; background: rgba(6, 18, 70, .35); touch-action: none; user-select: none; -webkit-user-select: none; }
+.gu .q-tour__cam { position: absolute; top: 0; left: 0; transform-origin: 0 0; transition: transform .9s cubic-bezier(.45, 0, .2, 1); }
+.gu .q-tour__screen { position: relative; width: 390px; display: flex; flex-direction: column; gap: 10px; padding: 0 16px 18px; border-radius: 24px; overflow: hidden;
+  background: linear-gradient(180deg, #1A47B5 0%, #12318A 60%, var(--gu-night) 100%); --gutter: 16px; }
+.gu .q-tour__screen .q-hdr--game { padding-top: 10px; }
+.gu .q-tour__screen { height: 760px; }
+.gu .q-tour__screen .q-game__main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.gu .q-tour__cmp { flex: 1 1 auto; min-height: 0; display: flex; }
+.gu .q-tour__cmp > .q-cmp { flex: 1 1 auto; }
+.gu .q-tour__dec, .gu .q-tour__tm, .gu .q-tour__trk { flex: none; }
+.gu .q-tour__screen [data-dim] { opacity: .25; filter: saturate(.4); }
+.gu .q-tour__screen > *, .gu .q-tour__screen .q-game__main > * { transition: opacity .5s, filter .5s; }
+/* beat state: hidden price → revealed, timer → verdict, answers → chosen, score 0 → 1, track one step */
+.gu .q-tour__cmp > .q-cmp:nth-child(2), .gu .q-tour__tm > .q-timer:nth-child(2), .gu .q-tour__dec > .q-decide:nth-child(2), .gu .q-tour__s1 { display: none; }
+.gu .q-tour:is([data-beat="5"], [data-beat="6"], [data-beat="7"]) :is(.q-tour__cmp > .q-cmp:nth-child(1), .q-tour__tm > .q-timer:nth-child(1), .q-tour__dec > .q-decide:nth-child(1), .q-tour__s0) { display: none; }
+.gu .q-tour:is([data-beat="5"], [data-beat="6"], [data-beat="7"]) .q-tour__cmp > .q-cmp:nth-child(2) { display: flex; }
+.gu .q-tour:is([data-beat="5"], [data-beat="6"], [data-beat="7"]) :is(.q-tour__tm > .q-timer:nth-child(2), .q-tour__dec > .q-decide:nth-child(2)) { display: flex; }
+.gu .q-tour:is([data-beat="5"], [data-beat="6"], [data-beat="7"]) .q-tour__s1 { display: inline; }
+.gu .q-tour:is([data-beat="5"], [data-beat="6"], [data-beat="7"]) .q-track__line i { --f: .1 !important; transition: transform .6s; }
+.gu .q-tour:is([data-beat="5"], [data-beat="6"], [data-beat="7"]) .q-track li:first-child .q-track__ic { filter: none !important; }
+.gu .q-tour__dec { position: relative; }
+.gu .q-tour__hand { position: absolute; top: 18px; right: 22%; display: none; pointer-events: none; }
+.gu .q-tour[data-beat="4"] .q-tour__hand { display: block; animation: q-tap 1.1s ease-in-out .5s infinite; }
+.gu .q-tour[data-beat="4"] .q-ab:first-child { animation: q-press 1.1s ease-in-out .5s infinite; }
+@keyframes q-tap { 0%, 100% { transform: translate(14px, 14px); } 45% { transform: translate(0, 0) scale(.92); } 60% { transform: translate(0, 0) scale(.92); } }
+@keyframes q-press { 0%, 40%, 70%, 100% { transform: none; } 50%, 60% { transform: translateY(2px); } }
+/* captions */
+.gu .q-tour__caps { flex: none; min-height: 112px; display: grid; }
+.gu .q-tour__cap, .gu .q-tour__end { grid-area: 1 / 1; display: none; text-align: center; }
+.gu .q-tour__cap h2, .gu .q-tour__end h2 { margin: 0 0 4px; font-size: 22px; line-height: 1.45; font-weight: var(--gu-display); color: #fff; }
+.gu .q-tour__cap p, .gu .q-tour__end p { margin: 0; font-size: 15px; line-height: 1.7; font-weight: 600; color: var(--gu-ice); }
+.gu .q-tour[data-beat="1"] [data-cap="1"], .gu .q-tour[data-beat="2"] [data-cap="2"], .gu .q-tour[data-beat="3"] [data-cap="3"],
+.gu .q-tour[data-beat="4"] [data-cap="4"], .gu .q-tour[data-beat="5"] [data-cap="5"], .gu .q-tour[data-beat="6"] [data-cap="6"] { display: block; animation: q-cap .45s ease-out; }
+.gu .q-tour[data-beat="7"] .q-tour__end { display: grid; gap: 10px; animation: q-cap .45s ease-out; }
+.gu .q-tour__end p { margin-bottom: 6px; }
+@keyframes q-cap { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.gu .q-tour[data-beat="7"] .q-tour__stage { opacity: .55; }
+/* story progress: earlier beats full, the current one fills over the beat */
+.gu .q-tour:is([data-beat="2"],[data-beat="3"],[data-beat="4"],[data-beat="5"],[data-beat="6"],[data-beat="7"]) .q-tour__segs i:nth-child(1) b,
+.gu .q-tour:is([data-beat="3"],[data-beat="4"],[data-beat="5"],[data-beat="6"],[data-beat="7"]) .q-tour__segs i:nth-child(2) b,
+.gu .q-tour:is([data-beat="4"],[data-beat="5"],[data-beat="6"],[data-beat="7"]) .q-tour__segs i:nth-child(3) b,
+.gu .q-tour:is([data-beat="5"],[data-beat="6"],[data-beat="7"]) .q-tour__segs i:nth-child(4) b,
+.gu .q-tour:is([data-beat="6"],[data-beat="7"]) .q-tour__segs i:nth-child(5) b,
+.gu .q-tour[data-beat="7"] .q-tour__segs i:nth-child(6) b { width: 100%; }
+.gu .q-tour[data-beat="1"] .q-tour__segs i:nth-child(1) b, .gu .q-tour[data-beat="2"] .q-tour__segs i:nth-child(2) b, .gu .q-tour[data-beat="3"] .q-tour__segs i:nth-child(3) b,
+.gu .q-tour[data-beat="4"] .q-tour__segs i:nth-child(4) b, .gu .q-tour[data-beat="5"] .q-tour__segs i:nth-child(5) b, .gu .q-tour[data-beat="6"] .q-tour__segs i:nth-child(6) b {
+  animation: q-seg var(--beat-ms, 3400ms) linear calc(-1 * var(--beat-done, 0ms)) forwards; }
+@keyframes q-seg { from { width: 0; } to { width: 100%; } }
+.gu .q-tour.is-held .q-tour__segs b, .gu .q-tour.is-held .q-tour__hand, .gu .q-tour.is-held .q-ab { animation-play-state: paused !important; }
+.gu .q-tour__save { flex: none; padding-top: 10px; }
+.gu .q-tour.is-still .q-tour__cam { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .gu .q-tour__cam { transition: none; }
+  .gu .q-tour__hand, .gu .q-tour .q-ab, .gu .q-offer, .gu .q-offer__burst i { animation: none !important; }
+  .gu .q-tour[data-beat="4"] .q-tour__hand { transform: none; }
 }

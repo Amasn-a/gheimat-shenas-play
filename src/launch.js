@@ -8,6 +8,15 @@ export const splash = createPriceShenasSplash({
   minVisibleMs: 2000,
 });
 
+// The title sprite failed (LAUNCH.SPLASH.ART_ERROR): show the game's own price-tag mark in its place, at a readable size,
+// never the image's alt text. The error and its reload stay as the kit defines them.
+const logo = splash.element.querySelector('.ps-splash__logo');
+logo.addEventListener('error', () => {
+  if (logo.classList.contains('is-fallback')) { logo.hidden = true; return; }
+  logo.classList.add('is-fallback');
+  logo.src = new URL('../assets/game-logo.webp', import.meta.url).href;
+});
+
 export const BOOT_ERROR = 'بارگذاری انجام نشد. دوباره تلاش کن.';
 
 /** Resolves with the next boot outcome game.js reports on #app (true = a real screen is showing). */

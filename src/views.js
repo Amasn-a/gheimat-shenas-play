@@ -1,11 +1,11 @@
 // Screen markup of the redesign of 2026-10-21 (white base, Digikala red actions, badge family). Views are pure functions
 // of the view model: they never read the network or the clock. All text from data goes through esc()/title().
-// Direction rules (§2): back/close sit at the physical right (first in RTL DOM order) and point right; inside continue,
-// start, next and play buttons the icon is written after the label, so it sits on the left.
+// Direction rules (§2): back/close sit at the physical right (first in RTL DOM order) and point right. Inside a button the
+// icon is written before the label, so it sits at the label's right; the play triangle is mirrored to point at the label (owner 2026-10-25).
 import { I } from './icons.js';
 import { fa, money, esc, title } from './fmt.js';
-import { DEMO_FIRST, DEMO_SECOND, DEMO_THIRD } from './demo.js';
-const DEMO_MUG = DEMO_FIRST.art, DEMO_HEADPHONES = DEMO_SECOND.art, DEMO_KETTLE = DEMO_THIRD.art;
+import { DEMO_FIRST, DEMO_SECOND } from './demo.js';
+const DEMO_MUG = DEMO_FIRST.art, DEMO_HEADPHONES = DEMO_SECOND.art;
 
 const L = ' disabled aria-disabled="true"';
 const ICO = (k, s = 20) => I[k].replace('width="24" height="24"', `width="${s}" height="${s}"`);
@@ -44,9 +44,10 @@ export function img(card, keyed, onload) {
 }
 /** Price with its unit; the number is isolated LTR so digits, separators and «تومان» are read in the right place. */
 export const price = (n, cls = '', attrs = '') => `<p class="q-price${cls}"${attrs}><b dir="ltr">${money(n)}</b><small>تومان</small></p>`;
-export const BTN = (cls, label, a = '', icon = '') => `<button class="q-btn ${cls}"${a}><span>${label}</span>${icon ? `<i class="q-btn__i">${icon}</i>` : ''}</button>`;
+const ICON = icon => icon ? `<i class="q-btn__i${icon === I.play ? ' q-btn__i--play' : ''}">${icon}</i>` : '';
+export const BTN = (cls, label, a = '', icon = '') => `<button class="q-btn ${cls}"${a}>${ICON(icon)}<span>${label}</span></button>`;
 export const PRIMARY = (label, a, icon) => BTN('q-btn--primary', label, a, icon);
-export const BUSY = (label, cls = 'q-btn--primary') => `<button class="q-btn ${cls}" disabled aria-disabled="true" aria-busy="true"><span>${label}</span><i class="q-btn__i">${SPIN}</i></button>`;
+export const BUSY = (label, cls = 'q-btn--primary') => `<button class="q-btn ${cls}" disabled aria-disabled="true" aria-busy="true"><i class="q-btn__i">${SPIN}</i><span>${label}</span></button>`;
 export const SECONDARY = (label, a, icon) => BTN('q-btn--secondary', label, a, icon);
 export function status(kind, text, icon, spin, alert) {
   const lead = spin ? SPIN : icon ? ICO(icon, 18) : '';
@@ -75,31 +76,14 @@ export function vSplash(error) {
 }
 
 // ---------------------------------------------------------------- G01 home (§4, §5)
-const COMPARE_ART = '<img class="q-home-art" src="assets/home-hero.webp" width="1000" height="667" alt="دو برچسب قیمت با فلش‌های رو به بالا و پایین">';
 export function balance(b) {
   if (b == null) return '<span class="q-bal is-unknown" aria-label="موجودی دیجی‌کوین نامعلوم">' + COIN + '<b>—</b></span>';
   return `<span class="q-bal" role="img" aria-label="موجودی: ${fa(b)} دیجی‌کوین">${COIN}<b>${fa(b)}</b></span>`;
 }
-function pcard(p, n) {
-  const label = `${n === 0 ? 'کالای شروع' : 'نوبت ' + fa(n)}: ${esc(p.displayTitle)}${p.isLoss ? '، اینجا باختی' : ''}`;
-  const open = p.link ? ` data-act="open-product" data-link="${esc(p.link)}"` : ' disabled';
-  return `<button class="q-pcard${p.isLoss ? ' is-loss' : ''}" role="listitem"${open}${p.isLoss ? ' data-loss' : ''} aria-label="${label}">` +
-    `${img(p)}<span class="q-pcard__t">${title(p.displayTitle)}</span>${p.isLoss ? '<span class="q-pcard__loss">اینجا باختی</span>' : ''}</button>`;
-}
-function history(m) {
-  const hs = m.historyState, items = m.products?.items || [];
-  const pages = Math.ceil(items.length / 2), n = Math.min(m.historyPage || 0, Math.max(0, pages - 1));
-  let body;
-  if (hs === 'error') body = `<div class="q-hist__empty">${BTN('q-btn--text', 'نمایش کالاهای دست قبلی', ' data-act="history-retry"')}</div>`;
-  else if (!items.length) body = '<p class="q-hist__empty">بعد از اولین دست، کالاهایی که دیدی اینجا می‌مونن.</p>';
-  else body = `<div class="q-hist__row" role="list" aria-label="کالاهای دست قبلی">${items.slice(n * 2, n * 2 + 2).map((p,i)=>pcard(p,n*2+i)).join('')}</div>`;
-  const nav = pages > 1 ? `<div class="q-history-nav"><button aria-label="کالاهای قبلی" data-act="history-prev"${n===0?L:''}>${I.back}</button><span>${fa(n+1)} از ${fa(pages)}</span><button aria-label="کالاهای بعدی" data-act="history-next"${n===pages-1?L:''}>${I.fwd}</button></div>` : '';
-  return `<section class="q-hist" aria-labelledby="hist-t"><div class="q-hist__hd"><h2 id="hist-t">کالاهای دست قبلی</h2>${nav}</div>${body}</section>`;
-}
-/** The home's bottom area: part of the page (no scrim, no drag, no extra modal). v: the G01 state. */
+/** The home's bottom sheet (owner 2026-10-25): full-bleed, curved top; the chances line and the one main action. v: the G01 state. */
 function homeSheet(v, m) {
   const b = m.boot, q = b.quota;
-  const chances = `<p class="q-chances">شانس بازی: <b>${fa(q.playsLeft)}</b></p>`;
+  const chances = `<p class="q-chances">${ICO('info', 18)}<span>هنوز <b>${fa(q.playsLeft)}</b> شانس داری</span></p>`;
   let cta, pre = '';
   if (v === 'G01.ACTIVE_RUN') {
     const r = b.activeRun;
@@ -110,36 +94,38 @@ function homeSheet(v, m) {
     cta = BUSY('شروع بازی');
   } else if (v === 'G01.STARTING' || v === 'G01.REFRESHING') cta = BUSY('شروع بازی');
   else if (v === 'G01.QUOTA_CHECKING') cta = `<button class="q-btn q-btn--primary" disabled aria-disabled="true" aria-busy="true"><span>در حال بررسی شانس بعدی...</span></button>`;
-  else if (v === 'G01.QUOTA_EXHAUSTED') cta = `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>تا شانس بعدی <b dir="ltr" data-countdown>${m.untilReset}</b></span><i class="q-btn__i">${ICO('clock')}</i></button>`;
-  else if (m.offline) { pre = status('warn', 'اتصال برقرار نیست؛ برای شروع بازی به اینترنت وصل شو.', 'wifi'); cta = `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>شروع بازی</span><i class="q-btn__i">${I.play}</i></button>`; }
+  else if (v === 'G01.QUOTA_EXHAUSTED') cta = `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><i class="q-btn__i">${ICO('clock')}</i><span>تا شانس بعدی <b dir="ltr" data-countdown>${m.untilReset}</b></span></button>`;
+  else if (m.offline) { pre = status('warn', 'اتصال برقرار نیست؛ برای شروع بازی به اینترنت وصل شو.', 'wifi'); cta = `<button class="q-btn q-btn--primary" disabled aria-disabled="true">${ICON(I.play)}<span>شروع بازی</span></button>`; }
   else cta = PRIMARY('شروع بازی', ' data-act="start"', I.play);
-  return `<section class="q-homesheet" aria-label="شروع بازی">${COMPARE_ART}<h2>گرون‌تره <em>یا ارزون‌تر؟</em></h2><p class="q-eyebrow">قیمت دو کالا رو مقایسه کن و درست حدس بزن.</p>${pre}${cta}${chances}</section>`;
+  return `<section class="q-homesheet" aria-label="شروع بازی">${pre}${v === 'G01.ACTIVE_RUN' ? '' : chances}${cta}</section>`;
 }
+/** Promo under the record card: opens the discounted products the player has seen (G12.DEALS). */
+const DEALS_BANNER = `<button class="q-dealbanner" data-act="deals" aria-label="تا ۹۰ درصد تخفیف روی کالاهایی که دیدی؛ دیدن کالاها">` +
+  `<b>تا ۹۰ درصد تخفیف روی کالاهایی که دیدی!</b><span class="q-dealbanner__go">از دستشون نده و کلیک کن ${ICO('fwd', 16)}</span></button>`;
 export function vHome(v, m) {
   const b = m.boot;
   const top = `<header class="q-hdr q-hdr--home"><button class="q-iconbtn" data-act="exit-app" aria-label="بازگشت به اپ">${I.back}</button>` +
-    `<div class="q-brand"><span class="q-logo q-logo--s" aria-hidden="true">${TAG}</span><b>قیمت‌شناس</b></div><span class="q-flex"></span>${balance(m.balance)}` +
-    `<button class="q-guidebtn" data-act="guide">${ICO('help', 20)}<span>راهنمای بازی</span></button></header>`;
-  const earnedIndex = b.config.checkpoints.reduce((last,c,i)=>b.record >= c.requiredCorrect ? i : last,-1);
-  const earned = earnedIndex >= 0 ? badge(b.config.checkpoints[earnedIndex], earnedIndex, 'q-record__badge') : '';
-  const first = b.config.checkpoints[0];
-  const sub = earned ? `عنوان: ${esc(b.config.checkpoints[earnedIndex].title)}` : first ? `با ${fa(first.requiredCorrect)} جواب درست، اولین نشانت رو بگیر.` : '';
-  const record = `<section class="q-record${earned ? '' : ' q-record--empty'}" aria-label="بهترین رکورد: ${fa(b.record)} جواب درست در یک دست"><div><span>بهترین رکوردت</span><b>${fa(b.record)}</b><small>${b.record ? 'جواب درست در یک دست' : 'هنوز رکوردی نداری'}</small>${sub ? `<em class="q-record__sub">${sub}</em>` : ''}</div>${earned}</section>`;
+    `<h1 class="q-brand">قیمت‌شناس</h1><span class="q-flex"></span>${balance(m.balance)}` +
+    `<button class="q-iconbtn q-guidebtn" data-act="guide" aria-label="راهنمای بازی">${ICO('help', 22)}</button></header>`;
+  const cps = b.config.checkpoints;
+  const earnedIndex = cps.reduce((last,c,i)=>b.record >= c.requiredCorrect ? i : last,-1);
+  const side = earnedIndex >= 0 ? badge(cps[earnedIndex], earnedIndex, 'q-record__badge') : '<p class="q-record__none">هنوز بازی نکردی!!!</p>';
+  const record = `<section class="q-record" aria-label="بهترین رکوردت: ${fa(b.record)} جواب درست"><div class="q-record__n"><span>بهترین رکوردت</span><b>${fa(b.record)}</b></div>${side}</section>`;
   const o = b.activeRun && !b.activeRun.onThisDevice ? b.activeRun : null;
   const note = o ? status('warn', `یه دست روی دستگاه دیگه‌ات بازه. با شروع دست جدید، اون دست با ${fa(o.score)} جواب درست تموم می‌شه.`, 'devices') : '';
   const camp = b.campaign ? status('', `کمپین ویژه: با رسیدن به ${fa(b.campaign.checkpointRequiredCorrect)} جواب درست، کد تخفیف ${money(b.campaign.codeAmountToman)} تومانی هم می‌گیری.`, 'info') : '';
-  return page('q-home', top + `<main class="q-home__scroll">${record}${m.productsOn ? history(m) : ''}${camp}${note}</main>` + homeSheet(v, m), (m.modal || '') + toastHTML(m.toast));
+  return page('q-home', top + `<main class="q-home__scroll">${record}${m.productsOn ? DEALS_BANNER : ''}${camp}${note}</main>` + homeSheet(v, m), (m.modal || '') + toastHTML(m.toast));
 }
 
 // ---------------------------------------------------------------- G01 daily reward modal
 const WD = ['ی', 'د', 'س', 'چ', 'پ', 'ج', 'ش'], WDF = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];   // getUTCDay()
 /**
- * «جایزه‌ی روزانه». The 7 days keep the server's floating window and its dates; the first day of the window sits at the
- * physical right (RTL order, §15). The only claim button sends one claim; on success the modal closes and the home shows
+ * «جایزه‌ی روزانه». The 7 days keep the server's floating window and its dates in calendar order: the earliest day sits at
+ * the physical right, each next day to its left (RTL, owner 2026-10-25). The only claim button sends one claim; on success the modal closes and the home shows
  * (no second «دریافت شد» surface). ui.phase: claimable | claiming | processing | slow | error.
  */
 export function dailyModal(d, ui) {
-  const days = [...d.days].sort((a,b)=>b.date.localeCompare(a.date)).map(x => {
+  const days = [...d.days].sort((a,b)=>a.date.localeCompare(b.date)).map(x => {   // owner 2026-10-25: earlier day at the right (شنبه | یکشنبه | …)
     const w = new Date(x.date + 'T12:00:00Z').getUTCDay();
     const st = x.today ? (x.attended ? 'امروز، حضور ثبت شده' : 'امروز') : x.attended ? 'حضور ثبت شده' : 'غیرفعال';
     return `<li aria-current="${x.today ? 'date' : 'false'}" class="${x.attended ? 'is-on' : ''}${x.today ? ' is-today' : ''}" aria-label="${WDF[w]}، ${st}"><span class="q-day__c" aria-hidden="true">${x.attended ? ICO('check', 16) : ''}</span><span aria-hidden="true">${x.today ? 'امروز' : WD[w]}</span></li>`;
@@ -166,7 +152,7 @@ const GUIDE_ART = {
   cont: `<span class="q-gart" aria-hidden="true">${ICO('undo', 30)}</span>`,
 };
 export function vGuide(m) {
-  if (m.demo) return page('q-guide q-guide--demo', hdr('آموزش بازی','guide-close','بستن راهنما') + tutorial(m.step,m.paused,m.still) + `<footer class="q-foot">${SECONDARY('نشان‌ها و قوانین',' data-act="guide-rules"')}${PRIMARY('فهمیدم',' data-act="guide-close"',I.fwd)}</footer>`);
+  if (m.demo) return page('q-guide q-guide--tour', tour(m.still, 'guide'));
   const c = m.config, cps = c.checkpoints, cr = c.continueRule;
   const steps = cps.map(x => fa(x.requiredCorrect)), last = steps.pop();
   const firstPaid = cps.findIndex(x => x.rewardAmount > 0);
@@ -177,46 +163,46 @@ export function vGuide(m) {
     sec(GUIDE_ART.badges, 'عنوان تازه بگیر', `با ${steps.join('، ')} و ${last} جواب درست، عنوان تازه می‌گیری${firstPaid >= 0 ? `؛ از چک‌پوینت ${ordinal} دیجی‌کوین هم داری` : ''}.`) +
     (cr.enabled && cr.cap > 0 ? sec(GUIDE_ART.cont, 'همون دست رو ادامه بده', `اگر امکان ادامه داشته باشی، می‌تونی با ${fa(cr.cost)} دیجی‌کوین همون دست رو ادامه بدی.`) : '');
   return page('q-guide', hdr('راهنمای قیمت‌شناس', 'guide-close', 'بستن راهنما') + `<main class="q-guide__body">${body}</main>` +
-    `<footer class="q-foot">${SECONDARY('نمایش آموزش متحرک',' data-act="guide-demo"')}${PRIMARY('فهمیدم', ' data-act="guide-close"', I.fwd)}</footer>`);
+    `<footer class="q-foot">${SECONDARY('نمایش آموزش متحرک',' data-act="guide-demo"', I.play)}${PRIMARY('فهمیدم', ' data-act="guide-close"')}</footer>`);
 }
-/** Onboarding page 1: a fixed sandbox of the game screen under a dimmed layer; the spotlight hole is placed by the controller. */
-export function tutorial(step = 0, paused = true, still = false) {
-  const captions = [
-    ['کالای اول: قیمتش معلومه', 'ماگ سرامیکی ۲۴۵٬۰۰۰ تومنه. این قیمت مرجع توئه.'],
-    ['کالای دوم: قیمتش مخفیه', '۵ ثانیه بعد خودش میاد (با «نشان بده» زودتر) و ۱۰ ثانیه وقت داری.'],
-    ['گرون‌تره یا ارزون‌تر؟', 'هدفون از ۲۴۵٬۰۰۰ تومن گرون‌تره؟ اینجا «گرون‌تره» رو می‌زنیم.'],
-    ['درست بود؛ یک امتیاز!', 'هدفون ۸۹۰٬۰۰۰ تومنه، پس «گرون‌تره» درست بود.'],
-    ['هدفون، کالای اول بعدی می‌شه', 'حالا کتری رو با قیمت هدفون مقایسه می‌کنی.'],
-  ];
-  const [h, p] = captions[step], last = captions.length - 1;
-  const dots = captions.map((c, i) => `<button class="q-demo-dot${step === i ? ' is-on' : ''}" data-act="demo-step" data-step="${i}" aria-label="مرحله ${fa(i + 1)}: ${c[0]}" aria-current="${i === step ? 'step' : 'false'}">${fa(i + 1)}</button>`).join('');
-  const first = step === 4 ? { t: 'هدفون بی‌سیم', a: DEMO_HEADPHONES, p: '۸۹۰٬۰۰۰' } : { t: 'ماگ سرامیکی', a: DEMO_MUG, p: '۲۴۵٬۰۰۰' };
-  const second = step === 4 ? { t: 'کتری برقی', a: DEMO_KETTLE, p: '؟' } : { t: 'هدفون بی‌سیم', a: DEMO_HEADPHONES, p: step === 3 ? '۸۹۰٬۰۰۰' : '؟' };
-  const top = step >= 3 ? '۱ جواب درست' : step >= 1 ? '۱۰ ثانیه' : 'تمرین؛ شانسی مصرف نمی‌شه';
-  const nav = `<button class="q-demo-nav" data-act="demo-prev" aria-label="مرحله قبل"${step === 0 ? L : ''}>${I.back}</button>` +
-    `<span class="q-demo-pos" aria-live="polite">مرحله ${fa(step + 1)} از ${fa(captions.length)}</span>` +
-    `<button class="q-demo-nav" data-act="demo-next" aria-label="مرحله بعد"${step === last ? L : ''}>${I.fwd}</button>`;
-  const play = still ? '' : `<button class="q-demo-pause" data-act="demo-toggle" aria-pressed="${!paused}">${ICO(paused ? 'play' : 'pause', 18)}<span>${paused ? 'پخش خودکار' : 'توقف'}</span></button>`;
-  return `<section class="q-tutorial" aria-label="نمایش آموزشی بازی"><div class="q-demo${paused ? ' is-paused' : ''}" data-step="${step}" aria-hidden="true">` +
-    `<div class="q-demo-top"><b>یک مقایسهٔ تمرینی</b><span>${top}</span></div><div class="q-demo-cards">` +
-    `<article class="q-demo-card q-demo-first"><div class="q-demo-art">${first.a}</div><h3>${first.t}</h3><b>${first.p} <small>تومان</small></b></article>` +
-    `<i class="q-demo-versus">${I.fwd}</i><article class="q-demo-card q-demo-second${step === 0 ? ' is-hidden' : ''}"><div class="q-demo-art">${second.a}</div><h3>${second.t}</h3><b>${second.p} <small>تومان</small></b></article></div>` +
-    `<div class="q-demo-answers"><span class="${step === 2 || step === 3 ? 'is-chosen' : ''}">${step === 3 ? '✓ درست گفتی' : '↑ گرون‌تره'}</span><span>↓ ارزون‌تره</span></div></div>` +
-    `<div class="q-demo-caption"><h2>${h}</h2><p>${p}</p></div>` +
-    `<div class="q-demo-controls"><div class="q-demo-step">${nav}${play}</div><div class="q-demo-dots" role="group" aria-label="رفتن به مرحله">${dots}<button class="q-demo-pause" data-act="demo-replay" aria-label="از اول">${ICO('replay', 20)}</button></div></div></section>`;
+/**
+ * The animated tour (owner 2026-10-25): one practice game screen; the camera moves to each part in turn and the beats play
+ * by themselves (no «بعدی»). Story-style segments show the progress; holding a finger pauses; «رد کردن» is always there.
+ * The whole stage is rendered once; the controller only changes data-beat, and CSS does the rest. Demo products are
+ * drawn art, never catalog products, and nothing here touches the server or spends a play.
+ */
+export const TOUR = [
+  ['قیمت این کالا معلومه', 'ماگ سرامیکی ۲۴۵٬۰۰۰ تومنه؛ این قیمت مرجع توئه.'],
+  ['قیمت این یکی مخفیه', 'باید حدس بزنی هدفون از ماگ گرون‌تره یا ارزون‌تر.'],
+  ['۱۰ ثانیه وقت داری', 'زمان از وقتی کالای دوم نشون داده می‌شه شروع می‌شه.'],
+  ['حدس بزن: گرون‌تره یا ارزون‌تره؟', 'هدفون گرون‌تر به نظر می‌رسه؛ «گرون‌تره» رو می‌زنیم.'],
+  ['هر جواب درست یعنی یک قدم جلوتر', 'هدفون ۸۹۰٬۰۰۰ تومنه؛ درست گفتی و یک امتیاز گرفتی.'],
+  ['به چک‌پوینت برسی، جایزه می‌گیری', 'سر هر چک‌پوینت نشان تازه، و از بعضی‌ها دیجی‌کوین هم می‌گیری.'],
+];
+const HAND = '<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><path d="M18 22V9a4 4 0 0 1 8 0v11l9.6 1.6A5 5 0 0 1 40 27.5L38 39a6 6 0 0 1-6 5H22a6 6 0 0 1-4.8-2.4L9.5 31.3a3.6 3.6 0 0 1 5.2-5L18 29Z" fill="#fff"/><path d="M18 22V9a4 4 0 0 1 8 0v11l9.6 1.6A5 5 0 0 1 40 27.5L38 39a6 6 0 0 1-6 5H22a6 6 0 0 1-4.8-2.4L9.5 31.3a3.6 3.6 0 0 1 5.2-5L18 29Z" fill="none" stroke="#1d2a5c" stroke-width="2.4" stroke-linejoin="round"/></svg>';
+export function tour(still, from) {
+  const cps = [{ requiredCorrect: 1, rewardAmount: 0, badgeAssetId: 'badge_5', title: 'بازاری تازه‌کار' }, { requiredCorrect: 3, rewardAmount: 1, badgeAssetId: 'badge_10', title: 'بازاری قدیمی' },
+    { requiredCorrect: 6, rewardAmount: 3, badgeAssetId: 'badge_15', title: 'قیمت‌شناس حرفه‌ای' }, { requiredCorrect: 10, rewardAmount: 5, badgeAssetId: 'badge_20', title: 'قیمت‌شناس اعظم' }];
+  const ref = { displayTitle: 'ماگ سرامیکی', imageUrl: 'demo:first', art: DEMO_MUG, price: 245000 };
+  const cmp = { displayTitle: 'هدفون بی‌سیم', imageUrl: 'demo:second', art: DEMO_HEADPHONES };
+  const segs = TOUR.map(() => '<i><b></b></i>').join('');
+  const caps = TOUR.map(([h, p], i) => `<div class="q-tour__cap" data-cap="${i + 1}"><h2>${h}</h2><p>${p}</p></div>`).join('');
+  const screen = `<div class="q-tour__screen q-game" aria-hidden="true" inert>${gameTop(0, true).replace('<b>۰</b>', '<b><span class="q-tour__s0">۰</span><span class="q-tour__s1">۱</span></b>')}` +
+    `<div class="q-tour__trk">${track(0, cps)}</div>` +
+    `<div class="q-tour__tm">${timer({ mode: 'run', t: fa(7) })}${timer({ mode: 'verdict', kind: 'ok', title: 'درست گفتی!', sub: 'گرون‌تر بود' })}</div>` +
+    `<main class="q-game__main">${refCard(ref, true)}<div class="q-tour__cmp">${cmpCard(cmp, 'hidden', 0)}${cmpCard(cmp, 'ok', 890000)}</div></main>` +
+    `<div class="q-tour__dec">${decide('on', null, '', 0)}${decide('ok', 'higher', '', 0)}<span class="q-tour__hand">${HAND}</span></div></div>`;
+  const end = `<div class="q-tour__end" data-cap="7"><h2>حالا نوبت توئه!</h2><p>قیمت‌ها رو مقایسه کن، رکورد بزن و نشان بگیر.</p>` +
+    (from === 'guide' ? PRIMARY('فهمیدم', ' data-act="guide-close"') + BTN('q-btn--text', 'دوباره ببینم', ' data-act="tour-replay"', ICO('replay', 18))
+      : PRIMARY('شروع بازی', ' data-act="onb-start"', I.play) + BTN('q-btn--text', 'راهنمای متنی', ' data-act="onb-rules"')) + '</div>';
+  return `<section class="q-tour${still ? ' is-still' : ''}" data-beat="1" aria-label="آموزش بازی">` +
+    `<div class="q-tour__top"><div class="q-tour__segs" aria-hidden="true">${segs}</div>` +
+    `<button class="q-tour__skip" data-act="${from === 'guide' ? 'guide-rules' : 'onb-skip'}">${from === 'guide' ? 'بستن' : 'رد کردن'}</button></div>` +
+    `<div class="q-tour__stage" data-tour-hold><div class="q-tour__cam">${screen}</div></div>` +
+    `<div class="q-tour__caps" role="status" aria-live="polite">${caps}${end}</div></section>`;
 }
-export function vOnboard1(m, scene, step, steps, still) {
-  return page('q-onb q-onb--lesson', hdr('چطور بازی کنم؟', 'onb-skip', 'رد کردن آموزش') + tutorial(step, m.paused || still, still) + `<footer class="q-foot">${m.error ? status('no',m.error,'alert',false,true):''}${PRIMARY('بعدی؛ نشان‌ها و جایزه‌ها', ' data-act="onb-next"', I.fwd)}${BTN('q-btn--text','رد کردن آموزش',' data-act="onb-skip"')}</footer>`);
-}
-export function vOnboard2(m) {
-  const cps = m.config.checkpoints;
-  const grid = cps.map((c, i) => `<li>${badge(c, i, '', true)}</li>`).join('');
-  const paid = cps.findIndex(x => x.rewardAmount > 0), ord = ['اول', 'دوم', 'سوم', 'چهارم'][paid] || fa(paid + 1) + 'م';
-  const rule = cps.length ? `با ${fa(cps[0].requiredCorrect)} جواب درست، اولین نشانت رو می‌گیری؛` + (paid > 0 ? `<br>از چک‌پوینت ${ord}، یعنی ${fa(cps[paid].requiredCorrect)} جواب درست، دیجی‌کوین هم می‌گیری.` : '') : '';
-  return page('q-onb q-onb--2', hdr('راهنمای بازی', 'onb-prev', 'قبلی') +
-    `<main class="q-onb2"><h1>باید رکورد بزنی</h1><p class="q-onb2__sub">${rule}</p><ul class="q-badgegrid" aria-label="چک‌پوینت‌ها">${grid}</ul>` +
-    `<p class="q-onb2__note">پاسخ‌های درستت حساب می‌شن</p></main>` +
-    `<footer class="q-foot q-foot--row">${m.error ? status('no', m.error, 'alert', false, true) : ''}${m.busy ? BUSY('بزن بریم') : PRIMARY('بزن بریم', ' data-act="onb-done"', I.play)}${BTN('q-btn--text', 'قبلی', ' data-act="onb-prev"' + (m.busy ? L : ''))}</footer>`);
+export function vOnboard(m, still) {
+  return page('q-onb q-onb--tour', tour(still, 'onb') + (m.error || m.busy ? `<div class="q-tour__save">${m.busy ? status('', 'در حال ذخیره…', null, true) : status('no', m.error, 'alert', false, true)}</div>` : ''));
 }
 
 // ---------------------------------------------------------------- gameplay (§6, §7, §8, §10)
@@ -225,14 +211,14 @@ export function gameTop(score, backLocked) {
   return `<header class="q-hdr q-hdr--game"><button class="q-iconbtn" data-act="back" aria-label="خروج از دست"${backLocked ? L : ''}>${I.back}</button><h1 class="q-hdr__t">قیمت‌شناس</h1>` +
     `<div class="q-hdr__end"><span class="q-score" aria-live="polite"><b>${fa(score)}</b><small>جواب درست</small></span></div></header>`;
 }
-/** A coin stack for a reward amount: 1 coin, a small cluster, or a simple stack for 5 and more (§10); the number is beside it. */
-function coinStack(n) { return `<span class="q-stack">${COIN}<b>${fa(n)}</b></span>`; }
+/** A paying checkpoint shows the DigiCoin alone (owner 2026-10-25: no amount on it, the coin says «you earn DigiCoin here»). */
+const coinStack = () => `<span class="q-stack">${COIN}</span>`;
 /** Main progress bar (kept, §10): fills with the score; each checkpoint shows its real reward — the badge when it pays no coin. */
 export function track(score, cps) {
   const last = cps.length ? cps[cps.length - 1].requiredCorrect : 1;
   const f = Math.min(1, score / last);
   const nodes = cps.map((c, i) => {
-    const ic = c.rewardAmount > 0 ? coinStack(c.rewardAmount) : `<img src="${BADGE_SRC(badgeId(c, i))}" alt="" width="34" height="33">`;
+    const ic = c.rewardAmount > 0 ? coinStack() : `<img src="${BADGE_SRC(badgeId(c, i))}" alt="" width="34" height="33">`;
     return `<li class="${c.requiredCorrect <= score ? 'is-done' : ''}" style="--x:${(100 * c.requiredCorrect / last).toFixed(2)}%"><span class="q-track__ic">${ic}</span><span class="q-track__n">${fa(c.requiredCorrect)}</span></li>`;
   }).join('');
   const next = cps.find(c => c.requiredCorrect > score);
@@ -276,7 +262,7 @@ export function revealCard(state, lead) {
   const b = off ? `<button class="q-btn q-btn--primary" disabled aria-disabled="true"><span>در انتظار اتصال…</span></button>`
     : failed ? PRIMARY('دوباره امتحان کن', ' data-act="reveal" data-tour="reveal"', I.refresh)
     : `<button class="q-btn q-btn--primary q-btn--lead${state === 'count' ? ' is-counting' : ''}" data-act="reveal" data-tour="reveal" aria-label="نشان بده؛ کالای بعدی خودکار نشون داده می‌شه"${fill}>` +
-      `<i class="q-btn__fill" aria-hidden="true"></i><span>نشان بده</span><i class="q-btn__i">${I.play}</i></button>`;
+      `<i class="q-btn__fill" aria-hidden="true"></i><i class="q-btn__i q-btn__i--play">${I.play}</i><span>نشان بده</span></button>`;
   return `<section class="q-invite${failed ? ' is-failed' : ''}"${mk('slot', 'fade')} aria-labelledby="inv-t"><span class="q-invite__tag" aria-hidden="true">${TAG}</span><h2 id="inv-t">${t}</h2>${p ? `<p>${p}</p>` : ''}${b}</section>`;
 }
 /** Comparison product. Its price is never in the page before the answer; afterwards the server's revealed price fills the same row. */
@@ -304,7 +290,7 @@ export function decide(st, side, line, refPrice) {
   else if (st === 'no') { me.cls = ' is-no'; me.a = ' aria-pressed="true"' + L; me.i = no; me.m = 'انتخاب تو، غلط'; ot.cls = ' is-truth'; ot.a = L; ot.i = ok; ot.m = 'جواب درست'; }
   else if (st === 'truth') { me.cls = ' is-truth'; me.a = L; me.i = ok; me.m = 'جواب درست'; ot.cls = ' is-dim'; ot.a = L; }
   const rp = st === 'on' && refPrice ? money(refPrice) : '';
-  const btn = (o, w) => `<button class="q-ab${o.cls}"${o.a}${rp ? ` aria-label="${w} از ${rp} تومان"` : ''}><span>${w}${o.m ? `<small class="pe-sr">، ${o.m}</small>` : ''}</span><i class="q-ab__i">${o.i}</i></button>`;
+  const btn = (o, w) => `<button class="q-ab${o.cls}"${o.a}${rp ? ` aria-label="${w} از ${rp} تومان"` : ''}><i class="q-ab__i">${o.i}</i><span>${w}${o.m ? `<small class="pe-sr">، ${o.m}</small>` : ''}</span></button>`;
   return `<div class="q-decide"${mk('decide', 'fade')}><div class="q-ans" role="group" aria-label="پاسخ" data-tour="answers">${btn(A, 'گرون‌تره')}${btn(B, 'ارزون‌تره')}</div></div>`;
 }
 export const prompt = (text, muted) => `<p class="q-prompt${muted ? ' is-muted' : ''}">${text}</p>`;
@@ -340,24 +326,67 @@ export function cpOverlay(c, index, reward, next) {
     `</div><div class="q-foot">${PRIMARY('ادامه بده', ' data-act="cp-go"', I.fwd)}</div></div>`;
 }
 
-// ---------------------------------------------------------------- G05/G06 loss and continue (§11, §12)
+// ---------------------------------------------------------------- G05/G06 end of a run (owner 2026-10-25)
 /**
- * One surface for the result of a miss and the continue of the same run (replaces the old offer sheet and End Screen).
- * m: { reason: wrong|timeout, score, best, cp (highest of THIS run) , cpIndex, action: html of the continue area, code }.
+ * End screen 1 — the continue offer as a modal over the game screen (the revealed price and verdict stay visible behind a
+ * blur). m: { cost, balance, state: offer|loading|ending|pending|unknown|failed, left (offer seconds or null) }.
  */
-export function vLoss(m) {
-  const cp = m.cp;
-  const head = m.final ? 'نتیجهٔ این دست' : m.reason === 'timeout' ? 'زمان تموم شد' : 'این بار درست حدس نزدی';
-  const sub = m.final ? (m.reason === 'timeout' ? 'زمانت روی آخرین کالا تموم شد.' : m.reason === 'wrong' ? 'آخرین حدست درست نبود.' : '') : '';
-  const tier = cp ? `<div class="q-loss__tier"><p>عنوان این دست</p>${badge(cp, m.cpIndex, 'q-loss__badge')}</div>`
-    : m.next ? `<p class="q-loss__goal">${m.score > 0 ? `${fa(m.next.requiredCorrect - m.score)} جواب درست دیگه تا نشان «${esc(m.next.title)}»!` : `با ${fa(m.next.requiredCorrect)} جواب درست، نشان «${esc(m.next.title)}» رو می‌گیری.`}</p>` : '';
-  const best = m.best > m.score ? `<p class="q-loss__best">بهترین رکوردت: ${fa(m.best)}</p>` : m.score > 0 ? '<p class="q-loss__best">این بهترین رکوردته!</p>' : '';
-  const home = m.homeLocked ? `<button class="q-btn q-btn--secondary" disabled aria-disabled="true"><span>صفحه اصلی</span><i class="q-btn__i">${I.home}</i></button>`
-    : BTN(m.final ? 'q-btn--primary' : 'q-btn--secondary', 'صفحه اصلی', ' data-act="loss-home"', I.home);
-  return page('q-loss', `<header class="q-hdr q-hdr--bare"><button class="q-iconbtn" data-act="loss-home" aria-label="صفحه اصلی"${m.homeLocked ? L : ''}>${I.back}</button><span class="q-flex"></span></header>` +
-    `<main class="q-loss__main"><h1 class="q-loss__h">${head}</h1>${sub ? `<p class="q-loss__sub">${sub}</p>` : ''}` +
-    `<p class="q-loss__score"><b>${fa(m.score)}</b><span>جواب درست در این دست</span></p>${tier}${best}${m.recap || ''}${m.code || ''}</main>` +
-    `<footer class="q-foot q-loss__act">${m.action}${home}${!m.homeLocked && m.shareable ? SECONDARY('اشتراک‌گذاری نتیجه', ' data-act="share-result"', I.share) : ''}</footer>`, toastHTML(m.toast));
+export function offerModal(m) {
+  const busy = { loading: 'در حال آماده‌سازی ادامه…', ending: 'در حال ثبت پایان دست…', pending: 'در حال بررسی پرداخت…' }[m.state];
+  const locked = !!busy || m.state === 'unknown';
+  let note = '', main;
+  if (m.state === 'pending') note = status('', 'پرداخت فقط یک بار انجام می‌شه؛ چند لحظه صبر کن.', 'info');
+  if (m.state === 'unknown') note = status('warn', 'نتیجه پرداخت هنوز مشخص نیست. هیچ مبلغی دوباره کسر نمی‌شه؛ اگه ادامه ممکن نشه، هزینه برمی‌گرده.', null, true);
+  if (m.state === 'failed') note = status('no', 'پرداخت انجام نشد و کوینی کسر نشد. هنوز می‌تونی دوباره امتحان کنی.', 'alert', false, true);
+  if (busy) main = BUSY(busy, 'q-btn--primary q-offer__go');
+  else if (m.state === 'unknown') main = BTN('q-btn--secondary q-offer__go', 'بررسی دوباره', ' data-act="recheck"', I.refresh);
+  else main = BTN('q-btn--primary q-offer__go', 'ادامه‌ی بازی', ' data-act="continue"', COIN);
+  const skip = BTN('q-btn--secondary q-offer__skip', 'رد کردن', ' data-act="offer-skip"' + (locked ? L : ''));
+  const left = m.left != null ? `<p class="q-offer__left" aria-live="off">${ICO('clock', 16)}<b data-offer-left>${m.left}</b> ثانیه</p>` : '';
+  return `<div class="q-scrim q-modal q-offerlayer"><div class="q-offer__bal">${balance(m.balance)}</div>` +
+    `<section class="q-offer${m.state === 'offer' ? ' is-new' : ''}" role="dialog" aria-modal="true" aria-labelledby="offer-t" aria-describedby="offer-d">` +
+    `<span class="q-offer__burst" aria-hidden="true">${'<i></i>'.repeat(10)}</span><span class="q-offer__icon" aria-hidden="true">${COIN}</span>` +
+    `<button class="q-iconbtn q-offer__x" data-act="offer-skip" aria-label="رد کردن ادامه"${locked ? L : ''}>${ICO('x', 20)}</button>` +
+    `<h2 id="offer-t">رکوردت رو بهتر کن!</h2><p id="offer-d">${fa(m.cost)} دیجی‌کوین بده و به بازی ادامه بده</p>${left}${note}` +
+    `<div class="q-offer__btns">${main}${skip}</div></section></div>`;
+}
+/** A seen product with its (simulated) deal: tile for the result screen and the deals page. */
+function dealTile(p, big) {
+  const d = p.deal || {};
+  const tag = d.discountPercent ? `<span class="q-deal__off">${fa(d.discountPercent)}٪</span>` : '';
+  const coin = d.coinBack ? `<span class="q-deal__coin">${COIN}${fa(d.coinBack)}</span>` : '';
+  const open = p.link ? ` data-act="open-product" data-link="${esc(p.link)}"` : ' disabled';
+  return `<li><button class="q-deal${big ? ' q-deal--row' : ''}"${open} aria-label="${esc(p.displayTitle)}${d.discountPercent ? `، ${fa(d.discountPercent)} درصد تخفیف` : ''}، مشاهده کالا">` +
+    `<span class="q-deal__img">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" decoding="async">` : ''}${tag}</span>` +
+    `${big ? `<span class="q-deal__b"><span class="q-deal__t">${title(p.displayTitle)}</span>${coin}<span class="q-deal__go">مشاهده کالا ${ICO('fwd', 16)}</span></span>` : coin}</button></li>`;
+}
+export const dealsOf = list => (list?.items || []).filter(p => p.deal && (p.deal.discountPercent || p.deal.coinBack));
+/**
+ * End screen 2 — the result. m: { title, score, best, newRecord, cp, cpIndex, better (percent or null), deals, dealsState,
+ * note (payment message html), code, shareable, balance, toast }.
+ */
+export function vEnd(m) {
+  const rows = [`<div class="q-end__row"><span>امتیاز</span><b>${fa(m.score)}</b></div>`];
+  if (!m.newRecord) rows.push(`<div class="q-end__row"><span>رکورد</span><b>${fa(m.best)}</b></div>`);
+  if (m.cp) rows.push(`<div class="q-end__row q-end__row--badge"><span>نشان</span><span class="q-end__badge"><img src="${BADGE_SRC(badgeId(m.cp, m.cpIndex))}" alt="" width="40" height="40"><b>${esc(m.cp.title)}</b></span></div>`);
+  const better = m.better != null ? `<p class="q-end__better">از ${fa(m.better)} درصد دیجی‌کالایی‌ها بهتری!</p>` : '';
+  const deals = m.deals.slice(0, 4);
+  const dealsSec = m.dealsState === 'ready' && !deals.length ? '' :
+    `<section class="q-end__deals" aria-labelledby="end-deals"><div class="q-end__dh"><h2 id="end-deals">کالاهای این دست تخفیف خوردن</h2>` +
+    `<button class="q-linkbtn" data-act="deals-end">بیشتر ${ICO('fwd', 16)}</button></div>` +
+    (m.dealsState === 'ready' ? `<ul class="q-end__dl">${deals.map(p => dealTile(p)).join('')}</ul>` : `<div class="q-end__dl is-loading" aria-busy="true"><i></i><i></i><i></i></div>`) + '</section>';
+  return page('q-end', `<header class="q-hdr q-hdr--bare q-end__hd"><button class="q-iconbtn" data-act="end-close" aria-label="بستن و رفتن به صفحه اصلی">${ICO('x', 22)}</button><span class="q-flex"></span>${balance(m.balance)}</header>` +
+    `<main class="q-end__main"><h1 class="q-end__h">${m.title}</h1>${m.note || ''}<section class="q-end__card" aria-label="نتیجهٔ این دست">${rows.join('')}${better}</section>${dealsSec}${m.code || ''}</main>` +
+    `<footer class="q-end__foot">${BTN('q-btn--primary', 'صفحه اصلی', ' data-act="end-home"', I.home)}${m.shareable ? BTN('q-btn--secondary', 'اشتراک‌گذاری', ' data-act="share-result"', I.share) : ''}</footer>`, toastHTML(m.toast));
+}
+/** G12.DEALS — the products the player has seen that are discounted now or pay DigiCoin back (data simulated in Play). */
+export function vDeals(m) {
+  const items = m.deals;
+  const body = m.state === 'loading' ? `<div class="q-state" role="status">${SPIN}<p>در حال آوردن کالاها…</p></div>`
+    : m.state === 'error' ? statecard('alert', 'no', 'کالاها نیومد', 'اتصال رو بررسی کن و دوباره امتحان کن.', PRIMARY('دوباره امتحان کن', ' data-act="deals-retry"', I.refresh))
+    : !items.length ? statecard('gift', '', m.played ? 'فعلاً تخفیفی نیست' : 'هنوز کالایی ندیدی', m.played ? 'کالاهایی که توی بازی دیدی الان تخفیف ندارن؛ بعداً سر بزن.' : 'یه دست بازی کن؛ کالاهایی که می‌بینی و تخفیف می‌خورن اینجا جمع می‌شن.', '')
+    : `<p class="q-deals__lead">تا ۹۰ درصد تخفیف روی کالاهایی که توی بازی دیدی</p><ul class="q-deals__list">${items.map(p => dealTile(p, true)).join('')}</ul>`;
+  return page('q-deals', hdr('کالاهایی که دیدی', 'deals-close', 'بازگشت') + `<main class="q-deals__main">${body}</main>`, toastHTML(m.toast));
 }
 export function codeCard(c, copied) {
   const body = c.status === 'pending' ? `<p class="q-code__val">${SPIN}<span>در حال صدور کد…</span></p>`

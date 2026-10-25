@@ -657,13 +657,22 @@ function result(runId, device) {
     nextGoal: next ? { remaining: next.requiredCorrect - run.score, title: next.title, reward: next.reward, requiredCorrect: next.requiredCorrect } : null,
     quota: quota(clockNow, part(dateOf(clockNow)).playsUsed), balance, campaignCode: null, finishedAt: iso(run.finishedAt), serverTime: iso(clockNow) };
 }
+// prototype-only (owner 2026-10-25, G12.DEALS): a stable simulated deal for some seen products. Production: Digikala's
+// live discount and DigiCoin cashback for each product, read when the list is requested.
+const DEAL_OFF = [12, 18, 25, 33, 40, 55, 70, 90];
+function dealOf(dkp) {
+  const h = Math.imul(Number(dkp) | 0, 2654435761) >>> 0, r = h % 100;
+  if (r < 60) return { discountPercent: DEAL_OFF[(h >>> 8) % DEAL_OFF.length], coinBack: r % 3 === 0 ? 1 + (h >>> 4) % 4 : 0 };
+  if (r < 75) return { discountPercent: 0, coinBack: 2 };
+  return null;
+}
 function productsView(runId, device) {
   const run = lockForCommand(runId);
   if (run.state !== 'FINISHED') throw stateError('RUN_NOT_FINISHED', run, device);   // no open-question leak
   const qs = questionsOf(run), items = [];
   // title: the catalog's long title is left out of this static demo to keep the download small; the player shows displayTitle only
   const item = (role, questionId, p, price, result, isLoss) => ({ position: items.length + 1, role, questionId, productId: String(p.dkp), variantId: String(p.variantId),
-    displayTitle: p.displayTitle, title: p.displayTitle, imageUrl: p.imageUrl, gamePrice: price, result, isLoss, link: PRODUCT_LINK(p.dkp) });
+    displayTitle: p.displayTitle, title: p.displayTitle, imageUrl: p.imageUrl, gamePrice: price, result, isLoss, link: PRODUCT_LINK(p.dkp), deal: dealOf(p.dkp) });
   const first = P(qs.length ? qs[0].referenceDkp : run.referenceDkp);
   items.push(item('reference', null, first, first.priceToman, null, false));
   let loss = null;

@@ -44,7 +44,7 @@
 
 /* ------------------------------------------------------------------ world */
 html:has(#app.gu), html:has(#app.gu) body { background: var(--gu-night); }
-.gu-world, body #app.gu, body.pe-play #app.gu {
+.gu-world, html:has(#app.gu) body {
   background:
     radial-gradient(120% 55% at 50% -5%, #2E6BEA 0%, rgba(46, 107, 234, 0) 70%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 18px, rgba(255, 255, 255, 0) 18px 46px),
@@ -52,6 +52,18 @@ html:has(#app.gu), html:has(#app.gu) body { background: var(--gu-night); }
   background-color: var(--gu-night);
 }
 .gu, .gu-world { color: #fff; font-family: var(--font); }
+/* tablets and desktops: the phone layout in one centred column (like Digikala's Super App games), never a separate
+   desktop arrangement; the world fills the whole screen behind it (owner 2026-10-26) */
+html:has(#app.gu) body { min-height: 100dvh; background-attachment: fixed; }
+body #app.gu, body.pe-play #app.gu, body.pe-play:not(.pe-dev) #app.gu, .pe-dev #app.gu { max-width: 650px !important; width: 100% !important; margin-inline: auto; background: transparent; }
+.gu .q-scrim { position: fixed; justify-content: center; }
+@media (min-width: 1000px) {   /* wide screens: faint game art in the side areas, so the world around the column is not empty */
+  html:has(#app.gu) body::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .14; filter: saturate(.7);
+    background: url(../assets/home-hero.webp) no-repeat left -90px bottom -40px / min(34vw, 560px) auto, url(../assets/home-hero.webp) no-repeat right -110px top 70px / min(26vw, 430px) auto; }
+  body #app.gu { position: relative; z-index: 1; }
+}
+.gu .q-sheet { max-width: 650px; }
+
 .gu .q-page { color: #fff; background: transparent; }
 .gu .q-entry { background: transparent; }
 
@@ -295,7 +307,7 @@ html:has(#app.gu), html:has(#app.gu) body { background: var(--gu-night); }
 .gu .q-recap .q-price b { text-shadow: none; }
 .gu .q-code small, .gu .q-code__val { color: var(--gu-ice); }
 .gu .q-code__val b { color: var(--gu-yellow); }
-@media (min-width: 900px) { .gu .q-loss__act { background: rgba(6, 18, 70, .35); border: 2px solid var(--gu-ink); box-shadow: inset 0 1.5px 0 rgba(79, 163, 255, .45); } }
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 
 /* ------------------------------------------------------------------ system states */
 .gu .q-state h2 { color: #fff; font-weight: var(--gu-display); }
@@ -316,18 +328,17 @@ html:has(#app.gu), html:has(#app.gu) body { background: var(--gu-night); }
 .gu :focus-visible { outline: 3px solid var(--gu-yellow); outline-offset: 3px; }
 
 /* ------------------------------------------------------------------ sizes per screen class */
-@media (max-height: 740px) and (max-width: 899px) {
+@media (min-width: 700px) {   /* the column has room to spare: a little more photo and title, same order and type scale */
+  .gu .q-cmp .q-img { max-width: min(220px, 72%); max-height: 220px; }
+  .gu .q-cmp__t { font-size: 20px; }
+}
+@media (max-height: 740px) {
   .gu .q-track { --node: 28px; --groove: 10px; }
   .gu .q-timer__n { width: 40px; height: 40px; font-size: 21px; margin-block: -1px; }
   .gu .q-cmp .q-img { max-height: 85px; }
   .gu .q-cmp__t { font-size: 16px; }
 }
-@media (min-width: 900px) {
-  .gu .q-hdr--game { margin-inline: auto; width: 100%; min-height: 0; padding: 3px 18px; border: 2px solid var(--gu-ink); border-top: 0; border-radius: 0 0 20px 20px; align-self: start; }
-  .gu .q-cmp .q-img { max-width: 230px; max-height: 230px; }
-  .gu .q-ref .q-img, .gu .q-ref--strip .q-img { width: auto; aspect-ratio: 1; flex: none; align-self: center; }
-  .gu .q-cmp__t { font-size: 21px; }
-}
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 @media (prefers-reduced-motion: reduce) {
   .gu .q-btn, .gu .q-ab { transition: none; }
   .gu .q-timer__n { animation: none !important; }

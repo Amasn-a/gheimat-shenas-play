@@ -143,10 +143,10 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 .q-onb2{overflow:visible;display:flex;flex-direction:column;justify-content:center;padding:0}.q-onb2 h1{font-size:28px}.q-onb2__sub{font-size:14px}.q-badgegrid{gap:12px;margin-top:12px}.q-badgegrid span{font-size:12px}.q-onb2__note{margin-top:10px;font-size:12px}
 @keyframes demo-appear{from{opacity:0;transform:translateX(-20px)}}@keyframes demo-tap{40%{transform:scale(.94)}}@keyframes demo-promote{from{transform:translateX(-50px);opacity:.4}}
 /* Small phones: shrink decorative space first, keep every product name and all actions. */
-@media(max-width:699px){
+
  .q-home__scroll{flex:0 0 auto}.q-homesheet{flex:1 1 0}.q-home-art{max-height:220px}.q-pcard{grid-template-columns:1fr;justify-items:center;text-align:center;padding:10px;gap:4px}.q-pcard .q-img{grid-row:auto;width:56px;height:56px}.q-pcard__t{font-size:12px;line-height:1.6}.q-pcard__loss{font-size:12px}
-}
-@media(max-height:740px) and (max-width:899px){
+
+@media(max-height:740px){
  :root{--gutter:16px}.q-page{gap:8px;padding-top:6px;padding-bottom:max(12px,env(safe-area-inset-bottom))}.q-hdr{min-height:44px}.q-home{gap:10px}.q-home__scroll{gap:8px}.q-record,.q-record--empty{min-height:96px;padding:12px 18px}.q-record b{font-size:34px}.q-record small{font-size:11px}
  .q-home-art{height:60px;max-height:100px;min-height:0}.q-homesheet{gap:6px}.q-homesheet h2{font-size:24px}.q-eyebrow{font-size:11px}.q-hist__hd{min-height:32px;margin-bottom:4px}.q-hist__hd h2{font-size:15px}.q-pcard{padding:8px}.q-pcard .q-img{height:40px;width:44px}.q-pcard__t{font-size:12px}.q-hist__empty{padding:12px}
  .q-track{height:45px}.q-track__ic{height:32px}.q-track__line{top:15px}.q-timer{min-height:40px;padding-block:5px 8px}.q-timer__n{font-size:23px}.q-game__main{gap:8px;min-height:230px}.q-ref,.q-ref--strip{min-height:90px;padding:8px 12px;gap:10px}.q-ref .q-img{width:60px;height:60px}.q-ref__t{font-size:14px;line-height:1.5}.q-ref .q-price b{font-size:23px}.q-label{font-size:12px}.q-ref__b{gap:1px}
@@ -157,28 +157,9 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 }
 @media(max-width:374px){.q-brand{gap:6px}.q-brand b{font-size:17px}.q-guidebtn{font-size:12px}.q-home>.q-hdr{gap:4px}.q-bal{padding-inline:8px;gap:4px}.q-bal b{font-size:15px}.q-logo--s{width:23px;height:34px}.q-demo-dot{min-width:38px}.q-demo-pause{padding-inline:8px}}
 /* Desktop is an arena with two full-size product panels, not an enlarged phone. */
-@media(min-width:900px){
- :root{--gutter:48px}.q-page{padding-block:24px 30px;gap:20px}.q-hdr{min-height:56px}.q-brand b{font-size:24px}.q-logo--s{width:32px;height:46px}.q-guidebtn{font-size:15px;padding-inline:16px}.q-bal{height:44px;padding-inline:16px}
- .q-home{display:grid;grid-template-columns:minmax(300px, .8fr) minmax(420px,1.2fr);grid-template-rows:64px 1fr;column-gap:64px;row-gap:24px}
- .q-home>.q-hdr{grid-column:1/-1}.q-home__scroll{grid-column:1;grid-row:2;justify-content:center;gap:30px;align-self:center}.q-record{min-height:180px;padding:24px 30px;border-radius:28px}.q-record b{font-size:64px}.q-record small{font-size:14px}
- .q-homesheet{grid-column:2;grid-row:2;align-self:center;justify-content:center;gap:16px;padding:0 20px}.q-home-art{width:100%;height:min(38dvh,340px);max-height:340px;flex:none;margin:0}.q-homesheet h2{font-size:48px;max-width:15ch;line-height:1.2}.q-eyebrow{font-size:14px}.q-chances{font-size:16px}.q-homesheet>.q-btn{max-width:390px;min-height:60px}.q-hist__hd h2{font-size:19px}.q-pcard{grid-template-columns:70px 1fr;padding:16px;min-height:130px}.q-pcard .q-img{width:70px;height:90px}.q-pcard__t{font-size:14px}
- .q-game{display:grid;grid-template-columns:1fr;grid-template-rows:56px 60px 50px minmax(270px,1fr) auto;row-gap:16px;max-width:1240px;margin:auto}
- .q-game>.q-hdr,.q-game>.q-track,.q-game>.q-timer{width:100%;max-width:1100px;margin-inline:auto}.q-game>.q-track{width:calc(100% - 80px);height:60px}.q-hdr--game .q-hdr__t{font-size:24px}.q-score{padding:6px 18px}.q-score b{font-size:26px}.q-score small{font-size:14px}
- .q-timer{min-height:48px}.q-timer__n{font-size:28px}.q-game__main{display:grid;grid-template-columns:1fr 1fr;gap:24px;min-height:0}.q-game__main>.q-pill{grid-column:1/-1}.q-ref,.q-ref--strip{display:flex;flex-direction:column;justify-content:center;text-align:center;min-height:0;padding:24px;gap:16px;border-radius:28px}
- .q-ref .q-img,.q-ref--strip .q-img{width:100%;height:clamp(100px,18dvh,200px);max-width:260px;flex:1 1 0;min-height:70px;max-height:240px}.q-ref__b{display:flex;flex-direction:column;gap:8px;align-items:center;flex:none}.q-ref__t{font-size:20px;max-width:36ch}.q-label{font-size:12px}.q-price b{font-size:32px}.q-price small{font-size:14px}
- .q-cmp{padding:24px;min-height:0;gap:10px;border-radius:28px;justify-content:center}.q-cmp__t{font-size:20px;max-width:36ch}.q-cmp .q-img{min-height:70px;max-height:250px;max-width:280px}.q-cmp .q-price b{font-size:32px}.q-cmp .q-price{min-height:40px}.q-invite{min-height:0;border-radius:28px;gap:12px}.q-invite__tag{width:50px;height:70px}.q-invite h2{font-size:28px}.q-invite p{font-size:16px}.q-invite .q-btn{min-height:60px}
- .q-decide{width:100%;max-width:680px;justify-self:center;gap:6px}.q-prompt{font-size:16px}.q-compare-price{font-size:14px}.q-ab{font-size:21px;min-height:60px}.q-hintline{grid-column:1/-1;font-size:14px}
- .q-scrim{align-items:center;justify-content:center;padding:32px}.q-sheet{max-width:480px;border-radius:28px;padding:32px}.q-sheet__x{inset-inline-start:16px}
- .q-cp{max-width:1440px;margin:auto;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 25%,#fff9 0,transparent 65%),#dff9eb}.q-cp__in{flex:0 1 auto;gap:14px}.q-cp__badge{width:min(270px,36dvh)}.q-cp__h{max-width:20ch;font-size:44px}.q-cp .q-foot{width:360px;margin-top:20px}
- .q-loss{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:52px 1fr;column-gap:64px;max-width:1100px;margin:auto}.q-loss>.q-hdr{grid-column:1/-1}.q-loss__main{grid-column:1;grid-row:2;gap:12px;align-self:center}.q-loss__act{grid-column:2;grid-row:2;align-self:center;gap:14px;padding:32px;border-radius:28px;background:#f0f1f8}.q-loss__act .q-btn{min-height:56px;font-size:18px}.q-loss__badge{width:96px}.q-loss__h{font-size:34px}.q-loss__sub{font-size:16px}.q-loss__score b{font-size:76px}.q-loss__score span{font-size:18px}.q-loss__tier p{font-size:16px}.q-recap__row,.q-recap__why{font-size:15px}.q-cost{font-size:14px}
- .q-tutorial{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:1fr auto;gap:32px;align-items:center;max-width:1100px;width:100%;margin:auto;flex:1 1 0;padding-block:30px}.q-demo{grid-row:1/-1;padding:30px;align-self:center}.q-demo-top{font-size:16px}.q-demo-top>span{font-size:13px}.q-demo-art{height:160px}.q-demo-card{padding:16px 10px;gap:8px}.q-demo-card h3{font-size:16px}.q-demo-card>b{font-size:22px}.q-demo-card small{font-size:12px}.q-demo-answers{font-size:16px;gap:14px;margin-top:20px}.q-demo-caption{text-align:right;min-height:0;align-self:end}.q-demo-caption h2{font-size:32px}.q-demo-caption p{font-size:18px;margin-top:12px;max-width:32ch}.q-demo-controls{align-self:start;justify-content:flex-start}.q-demo-dot{min-width:44px;min-height:44px;font-size:14px}.q-demo-pause{min-height:44px;font-size:14px}
- .q-onb--lesson .q-foot,.q-guide--demo .q-foot{grid-template-columns:1fr 1fr;max-width:600px;width:100%;align-self:center}.q-onb2{max-width:900px;align-self:center;gap:12px}.q-onb2 h1{font-size:42px}.q-onb2__sub{font-size:18px}.q-badgegrid{grid-template-columns:repeat(4,1fr);gap:26px;margin-top:26px}.q-onb2+.q-foot{max-width:480px;width:100%;align-self:center}.q-guide__body{grid-template-columns:1fr 1fr;max-width:1000px;align-self:center;gap:24px}.q-gsec{padding:24px}.q-gsec h2{font-size:21px}.q-gsec p{font-size:16px}.q-guide:not(.q-guide--demo)>.q-foot{grid-template-columns:1fr 1fr;max-width:600px;width:100%;align-self:center}
- .q-state{max-width:480px;width:100%;align-self:center}.q-share{max-width:460px}.q-share-preview{max-height:56dvh}
-}
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 /* Compact landscape desktop retains complete content without a phantom scrollbar. */
-@media(min-width:900px) and (max-height:780px){
- .q-page{padding-block:14px 20px;gap:12px}.q-home{row-gap:12px}.q-home-art{height:30dvh}.q-homesheet h2{font-size:38px}.q-record{min-height:150px}.q-game{grid-template-rows:48px 45px 42px minmax(230px,1fr) auto;row-gap:10px}.q-game>.q-track{height:45px}.q-ref,.q-ref--strip,.q-cmp{padding:16px}.q-ref__t,.q-cmp__t{font-size:17px}.q-ref__b{gap:3px}.q-ref .q-img{max-height:140px}.q-cmp .q-img{max-height:150px}.q-price b,.q-cmp .q-price b{font-size:27px}.q-invite h2{font-size:24px}.q-ab{min-height:52px}.q-game .q-timer{min-height:42px}.q-demo-art{height:120px}.q-tutorial{padding:10px 0}.q-demo{padding:20px}.q-demo-caption h2{font-size:28px}.q-demo-caption p{font-size:16px}.q-loss__badge{width:72px}.q-loss__main{gap:8px}.q-loss__h{font-size:28px}.q-loss__score b{font-size:60px}
-}
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 @media(prefers-reduced-motion:reduce){.q-demo *{animation:none!important;transition:none!important}}
 /* Accessibility fallback: unusually short viewports/large browser zoom may scroll rather than lose text or actions. */
 @media(max-height:500px){.q-game__main{flex:none;min-height:300px}}
@@ -196,8 +177,8 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 .q-homesheet .q-eyebrow{font-size:14px;margin-top:-2px}.q-homesheet .q-chances{text-align:center}
 .q-invite__goal{font-size:13px;font-weight:700;color:#283dbc;margin-top:6px}
 .q-cp__next{font-size:15px;color:var(--ink-2);margin-top:4px}
-@media(max-height:740px) and (max-width:899px){.q-invite__goal{margin-top:2px}.q-cp__next{font-size:14px}.q-homesheet .q-eyebrow{font-size:13px}}
-@media(min-width:900px){.q-demo-controls{justify-content:flex-start}.q-demo-step{justify-content:flex-start}.q-loss__act .q-cost{justify-content:center}}
+@media(max-height:740px){.q-invite__goal{margin-top:2px}.q-cp__next{font-size:14px}.q-homesheet .q-eyebrow{font-size:13px}}
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 .q-recap__row{grid-template-columns:auto 1fr}.q-recap__row .q-price{grid-column:1/-1;justify-self:end;margin-top:-4px}
 /* Badge card (handoff 2026-10-25): emblem above, exact title below, one shared frame and type scale for all four tiers */
 .q-badgecard{--badge-accent:#087f73;--badge-tint:#edf9f5;margin:0;min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px 10px;border:1px solid color-mix(in srgb,var(--badge-accent) 24%,#fff);border-radius:22px;background:linear-gradient(180deg,var(--badge-tint),#fff 74%);box-shadow:0 5px 16px #15162c0d,inset 0 0 0 3px #ffffffb3;color:var(--ink);text-align:center}
@@ -211,10 +192,9 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 .q-record .q-record__badge{width:118px;flex:none;padding:8px 6px 6px;gap:4px}.q-record__badge .q-badgecard__art{width:72px}.q-record__badge figcaption{padding:4px}.q-record__badge figcaption b{font-size:12px;min-height:0}
 .q-cp__badge{width:min(230px,62vw);padding:16px 12px 12px}.q-cp__badge .q-badgecard__art{width:min(100%,170px)}.q-cp__badge figcaption b{font-size:19px}
 .q-loss__badge{width:132px;padding:8px 8px 6px;gap:4px}.q-loss__badge .q-badgecard__art{width:76px}.q-loss__badge figcaption{padding:4px}.q-loss__badge figcaption b{font-size:13px;min-height:0}
-@media(max-height:740px) and (max-width:899px){.q-badgegrid{gap:8px}.q-badgegrid .q-badgecard{padding:8px 8px 6px;gap:4px}.q-badgegrid .q-badgecard__art{width:min(100%,72px)}.q-badgegrid figcaption b{font-size:14px}
+@media(max-height:740px){.q-badgegrid{gap:8px}.q-badgegrid .q-badgecard{padding:8px 8px 6px;gap:4px}.q-badgegrid .q-badgecard__art{width:min(100%,72px)}.q-badgegrid figcaption b{font-size:14px}
  .q-record .q-record__badge{width:96px}.q-record__badge .q-badgecard__art{width:52px}.q-cp__badge{width:min(200px,56vw)}.q-cp__badge .q-badgecard__art{width:120px}.q-loss__badge{width:112px}.q-loss__badge .q-badgecard__art{width:54px}}
-@media(min-width:900px){.q-badgegrid{grid-template-columns:repeat(4,1fr);gap:18px}.q-badgegrid .q-badgecard__art{width:min(100%,150px)}.q-badgegrid figcaption b{font-size:17px}
- .q-record .q-record__badge{width:150px}.q-record__badge .q-badgecard__art{width:104px}.q-record__badge figcaption b{font-size:14px}.q-cp__badge{width:min(280px,40dvh)}.q-cp__badge .q-badgecard__art{width:min(100%,32dvh)}.q-loss__badge{width:150px}.q-loss__badge .q-badgecard__art{width:96px}}
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 /* icons on existing controls */
 .q-guidebtn{display:inline-flex;align-items:center;gap:6px}.q-guidebtn svg{flex:none}
 .q-daily h2{display:flex;align-items:center;justify-content:center;gap:8px}.q-daily__gift{color:var(--red);display:grid}
@@ -225,11 +205,11 @@ body.pe-play #app{max-width:1440px;box-shadow:none;background:var(--bg)}
 @media(prefers-reduced-motion:reduce){.q-pop-once{animation:none}}
 /* the last comparison supports the result: compact prices, ordinary weight, the run score stays dominant */
 .q-recap__row .q-price b,.q-recap .q-price b{font-size:15px;font-weight:700}.q-recap__row .q-price small{font-size:12px}.q-recap h2{font-size:13px}
-@media(min-width:900px){.q-recap__row .q-price b,.q-recap .q-price b{font-size:16px}}
+/* desktop-only layout removed 2026-10-26: wide screens show the phone layout in a centred column */
 /* device audit 2026-10-25 (Samsung / iPhone): safe areas, short Safari viewports, 320px, touch targets, 12px text floor */
 .q-cp{padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom))}
-@media(max-width:899px){.q-sheet{padding-bottom:max(24px,calc(env(safe-area-inset-bottom) + 12px))}}
-@media(max-height:740px) and (max-width:899px){.q-page{padding-top:max(6px,env(safe-area-inset-top))}}
+.q-sheet{padding-bottom:max(24px,calc(env(safe-area-inset-bottom) + 12px))}
+@media(max-height:740px){.q-page{padding-top:max(6px,env(safe-area-inset-top))}}
 .q-demo-nav,.q-demo-dot{flex:none;min-width:44px;min-height:44px}.q-demo-pause{white-space:nowrap;min-height:44px}
 .q-stack b{font-size:12px;min-width:20px;line-height:20px}.q-demo-card small,.q-record small,.q-eyebrow{font-size:12px}
 .q-badgecard__reward{font-weight:700}.q-badgecard__reward.is-coin{color:#b45309}

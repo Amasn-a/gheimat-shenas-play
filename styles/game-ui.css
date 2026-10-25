@@ -1,0 +1,233 @@
+/* قیمت‌شناس · Game UI design system (2026-10-26)
+   Casual-game look from the approved references: deep-blue world, chunky 3D buttons with a dark outline and a bottom lip,
+   framed panels with a light inner rim, dark pills for stats, yellow for the main call to action. Digikala red stays the
+   brand colour («گرون‌تره», logo); the only typeface is the supplied Digikala family at heavy weights.
+   Scope: everything is under `.gu`, a class the controller puts on #app while a migrated screen is showing (batch 1: the
+   question screen). The motion layer lives inside #app, so its ghosts keep these styles mid-transition. */
+
+:root {
+  /* palette */
+  --gu-ink: #0A1640;          /* outlines, text shadows, darkest navy */
+  --gu-night: #0B1F5E;        /* page bottom */
+  --gu-navy: #10297A;         /* dark wells: pills, tracks */
+  --gu-panel: #1B47B8;        /* panel body */
+  --gu-panel-2: #163A9A;      /* panel lower half */
+  --gu-rim: #4FA3FF;          /* panel inner rim, highlights */
+  --gu-ice: #D6ECFF;          /* secondary text on blue */
+  --gu-blue: #1474E0;         /* bars, «ارزون‌تره» */
+  --gu-blue-lip: #0A4BA8;
+  --gu-yellow: #FAC602;       /* main call to action, prices */
+  --gu-yellow-hi: #FFE466;
+  --gu-yellow-lip: #C27A00;
+  --gu-yellow-ink: #3B2300;   /* text on yellow (9:1) */
+  --gu-green: #53CE17;        /* correct */
+  --gu-green-lip: #2E8A0B;
+  --gu-slate: #40436C;        /* neutral / secondary buttons */
+  --gu-slate-lip: #26284A;
+  --gu-red: #EF4056;          /* Digikala red: «گرون‌تره», wrong */
+  --gu-red-hi: #FF6F81;
+  --gu-red-lip: #A3122B;
+  --gu-amber: #FF9F1A;        /* low time */
+  /* type (Digikala only) */
+  --gu-font: Digikala, sans-serif;
+  --gu-display: 900;
+  --gu-strong: 800;
+  /* shape */
+  --gu-r: 18px;               /* panels */
+  --gu-r-btn: 16px;
+  --gu-lip: 5px;              /* 3D button depth */
+  --gu-outline: 0 2px 0 var(--gu-ink), 2px 0 0 var(--gu-ink), -2px 0 0 var(--gu-ink), 0 -2px 0 var(--gu-ink),
+                1.4px 1.4px 0 var(--gu-ink), -1.4px 1.4px 0 var(--gu-ink), 1.4px -1.4px 0 var(--gu-ink), -1.4px -1.4px 0 var(--gu-ink), 0 4px 0 var(--gu-ink);
+  --gu-outline-s: 0 1.5px 0 var(--gu-ink), 1.5px 0 0 var(--gu-ink), -1.5px 0 0 var(--gu-ink), 0 -1px 0 var(--gu-ink), 0 2.5px 0 var(--gu-ink);
+}
+
+/* ------------------------------------------------------------------ world: painted on #app (and the page behind it) so wide screens have no seams */
+html:has(#app.gu), html:has(#app.gu) body { background: var(--gu-night); }
+.gu-world, body #app.gu, body.pe-play #app.gu {
+  background:
+    radial-gradient(120% 55% at 50% -5%, #2E6BEA 0%, rgba(46,107,234,0) 70%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 18px, rgba(255,255,255,0) 18px 46px),
+    linear-gradient(180deg, #1A47B5 0%, #12318A 45%, var(--gu-night) 100%);
+  background-color: var(--gu-night);
+}
+.gu .q-page.q-game { color: #fff; padding-top: 0; background: transparent; }
+
+/* ------------------------------------------------------------------ top bar: full-bleed blue strip */
+.gu .q-hdr--game {
+  margin-inline: calc(-1 * var(--gutter)); padding: max(8px, env(safe-area-inset-top)) var(--gutter) 8px;
+  background: linear-gradient(180deg, #3796FF 0%, var(--gu-blue) 55%, #0F63C8 100%); background-color: var(--gu-blue);
+  border-bottom: 3px solid var(--gu-ink); box-shadow: 0 4px 0 rgba(4,14,52,.35);
+}
+.gu .q-hdr--game .q-hdr__t { color: #fff; font-weight: var(--gu-display); font-size: 21px; text-shadow: var(--gu-outline-s); }
+
+/* square 3D icon button (back) */
+.gu .q-iconbtn {
+  margin-inline-start: 0; width: 44px; height: 44px; border-radius: 13px; color: #fff;
+  background: linear-gradient(180deg, #3C9BFF, var(--gu-blue)); background-color: var(--gu-blue);
+  border: 2.5px solid var(--gu-ink); box-shadow: inset 0 2px 0 rgba(255,255,255,.45), 0 3px 0 var(--gu-ink);
+}
+.gu .q-iconbtn svg { filter: drop-shadow(0 1.5px 0 var(--gu-ink)); }
+.gu .q-iconbtn:active:not([disabled]) { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,.35), 0 1px 0 var(--gu-ink); }
+
+/* stat pill (like «ONLINE: 10»): dark well, light rim */
+.gu .q-score {
+  align-items: center; gap: 6px; padding: 5px 12px; border-radius: 12px;
+  background: var(--gu-navy); border: 2px solid var(--gu-ink); box-shadow: inset 0 0 0 1.5px rgba(79,163,255,.45);
+}
+.gu .q-score b { color: var(--gu-yellow); font-weight: var(--gu-display); text-shadow: var(--gu-outline-s); line-height: 1.25; }
+.gu .q-score small { color: var(--gu-ice); font-weight: 700; }
+
+/* ------------------------------------------------------------------ checkpoint track */
+.gu .q-track__line { height: 10px; border-radius: 6px; background: var(--gu-navy); border: 2px solid var(--gu-ink); box-shadow: inset 0 2px 0 rgba(0,0,0,.35); overflow: hidden; }
+.gu .q-track__line i { background: linear-gradient(180deg, var(--gu-yellow-hi), var(--gu-yellow) 55%, #F0A800); border-radius: 0; }
+.gu .q-track__ic { filter: drop-shadow(0 2px 0 rgba(4,14,52,.6)); opacity: 1; }
+.gu .q-track li:not(.is-done) .q-track__ic { filter: drop-shadow(0 2px 0 rgba(4,14,52,.6)) saturate(.55) brightness(.85); }
+.gu .q-track__n { color: #fff; font-weight: var(--gu-display); text-shadow: var(--gu-outline-s); }
+/* reward count: a round badge pinned to the coin's top corner, digit centred, clear of the threshold number below */
+.gu .q-stack b {
+  inset: -5px auto auto -7px; transform: none; display: grid; place-items: center; box-sizing: border-box;
+  min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; text-align: center; line-height: 1;
+  font-size: 12px; font-weight: var(--gu-display); color: var(--gu-yellow); background: var(--gu-ink); border: 1.5px solid var(--gu-yellow);
+}
+
+/* ------------------------------------------------------------------ timer: dark plate, hex cap number, cyan bar */
+.gu .q-timer {
+  border-radius: 16px; color: #fff; border: 2.5px solid var(--gu-ink);
+  background: linear-gradient(180deg, #17389A, var(--gu-navy)); background-color: var(--gu-navy);
+  box-shadow: inset 0 0 0 2px rgba(79,163,255,.35), 0 3px 0 rgba(4,14,52,.55);
+}
+.gu .q-timer__n { color: #fff; font-weight: var(--gu-display); text-shadow: var(--gu-outline-s); }
+.gu .q-timer__l { color: var(--gu-ice); font-weight: 700; }
+.gu .q-timer__bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.14); }
+.gu .q-timer.is-run, .gu .q-timer.is-low { background: linear-gradient(180deg, #17389A, var(--gu-navy)); }
+.gu .q-timer.is-run .q-timer__n { color: var(--gu-yellow); }
+.gu .q-timer.is-run .q-timer__l { color: var(--gu-ice); }
+.gu .q-timer.is-run .q-timer__bar { background: linear-gradient(90deg, #5FE1FF, #2FA8FF); box-shadow: 0 0 8px rgba(95,225,255,.6); }
+.gu .q-timer.is-low { border-color: var(--gu-ink); box-shadow: inset 0 0 0 2px rgba(255,111,129,.7), 0 0 0 3px rgba(239,64,86,.35), 0 3px 0 rgba(4,14,52,.55); }
+.gu .q-timer.is-low .q-timer__n { color: var(--gu-red-hi); }
+.gu .q-timer.is-low .q-timer__l { color: #FFD3D9; }
+.gu .q-timer.is-low .q-timer__bar { background: linear-gradient(90deg, var(--gu-amber), var(--gu-red)); box-shadow: 0 0 8px rgba(239,64,86,.6); }
+.gu .q-timer.is-zero { background: #5A1030; border-color: var(--gu-ink); }
+.gu .q-timer.is-zero .q-timer__n, .gu .q-timer.is-zero .q-timer__l { color: #FFD3D9; }
+.gu .q-timer.is-busy .q-spin { color: var(--gu-yellow); }
+.gu .q-timer__ok { background: var(--gu-green); color: #fff; border: 2px solid var(--gu-ink); }
+
+/* ------------------------------------------------------------------ panels: product cards and the invitation */
+.gu .q-ref, .gu .q-cmp, .gu .q-invite {
+  color: #fff; border: 3px solid var(--gu-ink); border-radius: var(--gu-r);
+  background: linear-gradient(180deg, #2457CF 0%, var(--gu-panel) 40%, var(--gu-panel-2) 100%); background-color: var(--gu-panel);
+  box-shadow: inset 0 0 0 2px rgba(79,163,255,.75), inset 0 3px 0 rgba(255,255,255,.18), 0 5px 0 rgba(4,14,52,.5);
+}
+.gu .q-ref .q-img, .gu .q-cmp .q-img { border: 2.5px solid var(--gu-ink); border-radius: 14px; box-shadow: inset 0 -3px 0 rgba(10,22,64,.08); }
+.gu .q-label {
+  display: inline-block; justify-self: start; width: fit-content; padding: 1px 10px; border-radius: 999px;
+  background: var(--gu-navy); color: var(--gu-ice); font-weight: 800; border: 1.5px solid var(--gu-ink);
+}
+.gu .q-cmp .q-label { align-self: center; }
+.gu .q-ref__t, .gu .q-cmp__t { color: #fff; font-weight: 800; text-shadow: 0 1.5px 0 rgba(10,22,64,.6); }
+.gu .q-price b { color: var(--gu-yellow); font-weight: var(--gu-display); text-shadow: var(--gu-outline); }
+.gu .q-price small { color: var(--gu-ice); font-weight: 700; }
+.gu .q-price--hidden b { color: var(--gu-yellow); }
+.gu .q-cmp__hint { color: var(--gu-ice); }
+
+/* comparison card verdicts: the frame glows; the revealed price sits on a coloured plate */
+.gu .q-cmp.is-ok { border-color: var(--gu-ink); box-shadow: inset 0 0 0 3px var(--gu-green), 0 0 0 3px rgba(83,206,23,.45), 0 5px 0 rgba(4,14,52,.5); }
+.gu .q-cmp.is-no, .gu .q-cmp.is-time { border-color: var(--gu-ink); box-shadow: inset 0 0 0 3px var(--gu-red), 0 0 0 3px rgba(239,64,86,.4), 0 5px 0 rgba(4,14,52,.5); }
+.gu .q-price--reveal { padding: 0 14px; border-radius: 12px; border: 2px solid var(--gu-ink); background: var(--gu-navy); }
+.gu .q-cmp.is-ok .q-price--reveal { background: var(--gu-green-lip); color: #fff; }
+.gu .q-cmp.is-no .q-price--reveal, .gu .q-cmp.is-time .q-price--reveal { background: var(--gu-red-lip); color: #fff; }
+.gu .q-cmp.is-ok .q-price--reveal b, .gu .q-cmp.is-no .q-price--reveal b, .gu .q-cmp.is-time .q-price--reveal b { color: #fff; }
+.gu .q-cmp.is-ok .q-price--reveal small, .gu .q-cmp.is-no .q-price--reveal small, .gu .q-cmp.is-time .q-price--reveal small { color: #fff; }
+
+/* the invitation before «نشان بده» */
+.gu .q-invite h2 { color: #fff; font-weight: var(--gu-display); text-shadow: var(--gu-outline-s); }
+.gu .q-invite p { color: var(--gu-ice); }
+.gu .q-invite .q-invite__goal { color: var(--gu-yellow-hi); font-weight: 800; }
+.gu .q-invite.is-failed { box-shadow: inset 0 0 0 2px var(--gu-red-hi), 0 5px 0 rgba(4,14,52,.5); }
+.gu .q-invite__tag { filter: drop-shadow(0 3px 0 rgba(4,14,52,.5)); }
+
+/* ------------------------------------------------------------------ 3D buttons */
+.gu .q-btn, .gu .q-ab {
+  position: relative; border: 3px solid var(--gu-ink); border-radius: var(--gu-r-btn); font-weight: var(--gu-display);
+  transition: transform .08s, box-shadow .08s, filter .15s, opacity .15s;
+}
+.gu .q-btn--primary {   /* yellow: the main call to action */
+  color: var(--gu-yellow-ink);
+  background: linear-gradient(180deg, var(--gu-yellow-hi) 0%, var(--gu-yellow) 48%, #F2AE00 100%); background-color: var(--gu-yellow);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.6), inset 0 -4px 0 rgba(194,122,0,.35), 0 var(--gu-lip) 0 var(--gu-yellow-lip), 0 calc(var(--gu-lip) + 3px) 0 var(--gu-ink);
+}
+.gu .q-btn--primary .q-btn__i { color: var(--gu-yellow-ink); }
+.gu .q-btn--primary:active:not([disabled]) { background-color: var(--gu-yellow); transform: translateY(var(--gu-lip)) scale(1);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(194,122,0,.3), 0 0 0 var(--gu-yellow-lip), 0 3px 0 var(--gu-ink); }
+.gu .q-btn--primary[disabled] { color: rgba(59,35,0,.6); filter: saturate(.4) brightness(.9); }
+.gu .q-btn--secondary, .gu .q-btn--danger {
+  color: #fff; background: linear-gradient(180deg, #5A5E92, var(--gu-slate)); background-color: var(--gu-slate);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.25), 0 var(--gu-lip) 0 var(--gu-slate-lip), 0 calc(var(--gu-lip) + 3px) 0 var(--gu-ink);
+}
+.gu .q-btn--danger { background: linear-gradient(180deg, var(--gu-red-hi), var(--gu-red)); background-color: var(--gu-red);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.35), 0 var(--gu-lip) 0 var(--gu-red-lip), 0 calc(var(--gu-lip) + 3px) 0 var(--gu-ink); }
+.gu .q-btn > span { text-shadow: none; }
+.gu .q-btn--secondary > span, .gu .q-btn--danger > span { text-shadow: var(--gu-outline-s); }
+
+/* answers: red «گرون‌تره», blue «ارزون‌تره» */
+.gu .q-ans { gap: 12px; margin-bottom: calc(var(--gu-lip) + 3px); }
+.gu .q-ab {
+  color: #fff; font-size: 19px;
+  background: linear-gradient(180deg, var(--gu-red-hi) 0%, var(--gu-red) 52%, #D62A44 100%); background-color: var(--gu-red);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.4), inset 0 -4px 0 rgba(120,0,20,.25), 0 var(--gu-lip) 0 var(--gu-red-lip), 0 calc(var(--gu-lip) + 3px) 0 var(--gu-ink);
+}
+.gu .q-ab:nth-child(2) {
+  background: linear-gradient(180deg, #47A6FF 0%, var(--gu-blue) 52%, #0E5CC0 100%); background-color: var(--gu-blue);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.4), inset 0 -4px 0 rgba(0,30,90,.25), 0 var(--gu-lip) 0 var(--gu-blue-lip), 0 calc(var(--gu-lip) + 3px) 0 var(--gu-ink);
+}
+.gu .q-ab > span { text-shadow: var(--gu-outline-s); }
+.gu .q-ab__i { color: #fff; filter: drop-shadow(0 1.5px 0 var(--gu-ink)); }
+.gu .q-ab:active:not([disabled]), .gu .q-ab:nth-child(2):active:not([disabled]) { transform: translateY(var(--gu-lip)); }
+.gu .q-ab:active:not([disabled]) { background-color: var(--gu-red); box-shadow: inset 0 3px 0 rgba(255,255,255,.3), 0 0 0 var(--gu-red-lip), 0 3px 0 var(--gu-ink); }
+.gu .q-ab:nth-child(2):active:not([disabled]) { background-color: var(--gu-blue); box-shadow: inset 0 3px 0 rgba(255,255,255,.3), 0 0 0 var(--gu-blue-lip), 0 3px 0 var(--gu-ink); }
+.gu .q-ab[disabled] { color: #fff; }
+.gu .q-ab.is-picked { background: var(--gu-slate); box-shadow: inset 0 3px 0 rgba(255,255,255,.2), 0 2px 0 var(--gu-ink); transform: translateY(3px); }
+.gu .q-ab.is-picked .q-spin { color: var(--gu-yellow); }
+.gu .q-ab.is-ok, .gu .q-ab.is-truth {
+  background: linear-gradient(180deg, #7BE83F 0%, var(--gu-green) 55%, #43B30F 100%); background-color: var(--gu-green); color: #fff;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.45), 0 var(--gu-lip) 0 var(--gu-green-lip), 0 calc(var(--gu-lip) + 3px) 0 var(--gu-ink);
+}
+.gu .q-ab.is-no { background: linear-gradient(180deg, #B0233B, #8A1229); background-color: #8A1229; color: #fff; box-shadow: 0 2px 0 var(--gu-ink); transform: translateY(3px); }
+.gu .q-ab.is-dim { opacity: .4; filter: saturate(.3); }
+.gu .q-ab__m { background: rgba(10,22,64,.35) !important; border: 2px solid #fff; }
+
+/* ------------------------------------------------------------------ prompt, reference price, verdict ribbons */
+.gu .q-prompt { color: #fff; font-weight: var(--gu-display); text-shadow: var(--gu-outline-s); }
+.gu .q-prompt.is-muted { color: var(--gu-ice); }
+.gu .q-compare-price { color: var(--gu-ice); }
+.gu .q-compare-price b { color: var(--gu-yellow); text-shadow: var(--gu-outline-s); }
+.gu .q-verdict { align-self: center; justify-self: center; width: fit-content; max-width: 100%; padding: 2px 14px 2px 10px; border-radius: 999px; border: 2.5px solid var(--gu-ink); box-shadow: 0 3px 0 rgba(4,14,52,.5); }
+.gu .q-verdict--ok { background: var(--gu-green-lip); }
+.gu .q-verdict--no, .gu .q-verdict--time { background: var(--gu-red-lip); }
+.gu .q-verdict b, .gu .q-verdict--ok b, .gu .q-verdict--no b, .gu .q-verdict--time b { color: #fff; text-shadow: var(--gu-outline-s); }
+.gu .q-verdict span:last-child { color: #fff; }
+.gu .q-verdict__i { border: 2px solid #fff; }
+.gu .q-verdict--ok .q-verdict__i { background: var(--gu-green); }
+
+/* status pill (connection) and toast on the dark world */
+.gu .q-pill { background: var(--gu-navy); color: #fff; border: 2px solid var(--gu-ink); }
+.gu .q-pill__btn { color: var(--gu-yellow); }
+
+.gu .q-hintline { color: var(--gu-ice); font-weight: 700; }
+
+/* timer number in a round cap (the reference's hex cap, kept round so the outline survives) */
+.gu .q-timer__n {
+  display: grid; place-items: center; min-width: 0; width: 48px; height: 48px; margin-block: -4px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 30%, #2C63D8, var(--gu-navy) 70%); background-color: var(--gu-navy);
+  border: 2.5px solid var(--gu-ink); box-shadow: inset 0 0 0 2px var(--gu-rim), 0 2px 0 var(--gu-ink); font-size: 26px;
+}
+.gu .q-timer.is-low .q-timer__n { box-shadow: inset 0 0 0 2px var(--gu-red-hi), 0 2px 0 var(--gu-ink); }
+
+/* focus stays visible on blue */
+.gu :focus-visible { outline: 3px solid var(--gu-yellow); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) { .gu .q-btn, .gu .q-ab { transition: none; } }
+@media (max-height: 740px) and (max-width: 899px) { .gu .q-timer__n { width: 40px; height: 40px; font-size: 22px; margin-block: -2px; } }
+@media (min-width: 900px) {   /* wide screens: the bar becomes a tab hanging from the top edge, centred with the board */
+  .gu .q-hdr--game { margin-inline: auto; width: 100%; min-height: 0; padding: 3px 18px; border: 3px solid var(--gu-ink); border-top: 0; border-radius: 0 0 20px 20px; align-self: start; }
+}

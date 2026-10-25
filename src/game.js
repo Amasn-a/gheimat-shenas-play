@@ -241,6 +241,7 @@ export function render() {
   const dialog = root.querySelector('[role="dialog"]');
   if (dialog && !dialog.contains(document.activeElement)) requestAnimationFrame(()=>dialog.querySelector('button:not([disabled])')?.focus({preventScroll:true}));
   root.dataset.view = stateId();
+  root.classList.toggle('gu', !!screenEl.querySelector('.q-page.q-game'));   // game UI system: migrated screens only (batch 1)
   wireImages();
   if (before) motion.morph(root, before, ms, () => { const q = S.ui.queued; S.ui.queued = null; if (q === 'reveal') setTimeout(reveal, 0); });
   if (root.querySelector('[data-countdown],[data-offer-left]')) tickLoop();

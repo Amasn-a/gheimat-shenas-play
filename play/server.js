@@ -3,8 +3,8 @@
 // Play-only timing: question 10 s visible / 12.5 s arrival deadline; continue decisions are untimed.
 // Admitted payments resolve within 60 s from admission. Receipt-first admission,
 // R-41 bands with look-ahead (starts aligned to 5/10/15/20), each checkpoint paid once when crossed (0/1/3/5), record
-// reward (1 for matching a record above 20, once per run), continue 5, daily reward claim, 3 plays a day (Asia/Tehran).
-// DEMO ONLY: one account per browser (localStorage), DigiCoin SIMULATED in this page (start balance 120). Nothing is
+// reward (1 for matching a record above 20, once per run), continue 5, daily reward claim, 100 plays a day (Asia/Tehran; owner 2026-10-25, temporary for QA).
+// DEMO ONLY: one account per browser (localStorage), DigiCoin SIMULATED in this page (start balance 1000). Nothing is
 // charged or credited anywhere. A static page cannot verify the real backend or the real DigiCoin integration.
 
 const PREFIX = '/v1/gamification/price-expert';
@@ -13,7 +13,7 @@ const STORE = 'pe.play.state.v1';
 
 // LaunchConfig.value() of gheimat-shenas (R-20, R-33, R-41, R-47, brief 2026-10-20, redesign 2026-10-21)
 const CFG = {
-  configVersion: 1, catalogVersion: 2, playsPerDay: 3,
+  configVersion: 1, catalogVersion: 2, playsPerDay: 100,   // owner 2026-10-25: temporary QA value, spec is 3
   inputMs: 10_000, acceptMs: 12_500,
   leadMs: 5_000,   // owner 2026-10-26: 5 s between questions; the next product is sent hidden at its start so its photo can load
  offerMs: null, offerAcceptMs: null, paymentResolutionMs: 60_000,
@@ -61,11 +61,14 @@ const invalid = (message, details) => Object.assign(new Fail(422, 'VALIDATION_FA
 const fresh = () => ({
   v: 1, player: { onboarded: false, record: 0, recordRunId: null, blocked: false }, gameOn: true,
   part: {}, seen: {}, runs: {}, qs: {}, offers: {}, ops: {}, credit: {}, idem: {},
-  wallet: { balance: 120, tx: {}, script: [] },
+  wallet: { balance: 1000, tx: {}, script: [] },   // owner 2026-10-25: temporary QA value
 });
 let S = fresh();
 function load() {
   try { const v = JSON.parse(localStorage.getItem(STORE)); if (v && v.v === 1) S = v; } catch (e) { /* storage blocked or corrupt: start fresh */ }
+  // owner 2026-10-25: browsers that already played get topped up to 1000 once
+  if (!S.qaTopUp1000) { S.wallet.balance = Math.max(S.wallet.balance, 1000); S.qaTopUp1000 = true; save(); }
+  try { } catch (e) { /* storage blocked or corrupt: start fresh */ }
 }
 function save() {
   try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* the demo then lives for this page only */ }
